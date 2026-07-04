@@ -178,7 +178,8 @@ a:hover {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* Top Navbar with Location Info (School Header Style) */
@@ -189,6 +190,14 @@ a:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
+}
+
+.content-body {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  min-height: 0;
 }
 
 .pn-logo-area {
@@ -223,6 +232,7 @@ a:hover {
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
+  flex-shrink: 0;
 }
 
 .school-footer-contact {
@@ -416,8 +426,237 @@ a:hover {
 /* Clear, Readable Tables */
 .table-container {
   overflow-x: auto;
+  overflow-y: auto;
+  min-height: 250px;
+  max-height: calc(100vh - 310px);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
+}
+
+/* Sticky header so column titles stay visible while scrolling */
+.table-container .table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: #f8fafc;
+}
+
+.roster-shell {
+  padding: 1.25rem;
+}
+
+.roster-header {
+  align-items: flex-start;
+}
+
+.roster-subtitle {
+  margin: 0.2rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.roster-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.roster-summary-card {
+  background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%);
+  border: 1px solid #dbeafe;
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.roster-summary-card.active {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf3 100%);
+  border-color: #bbf7d0;
+}
+
+.roster-summary-card.inactive {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-color: #e2e8f0;
+}
+
+.roster-summary-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.roster-summary-card strong {
+  font-size: 1.15rem;
+  color: var(--text-main);
+}
+
+.roster-table th {
+  white-space: nowrap;
+}
+
+.roster-row td {
+  vertical-align: top;
+}
+
+.roster-row-inactive {
+  background-color: #fafafa;
+}
+
+.row-inactive td {
+  opacity: 0.65;
+  background-color: #fafafa;
+}
+
+.class-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.subject-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.class-name {
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.class-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.empty-subjects {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.subject-badges {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.subject-badge {
+  font-size: 0.72rem;
+}
+
+.action-group {
+  display: inline-flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ⋮ Dropdown wrapper */
+.dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* The ⋮ trigger button */
+.btn-icon {
+  background: transparent;
+  border: 1.5px solid var(--border-color, #d0d5dd);
+  border-radius: 8px;
+  color: var(--text-muted, #667085);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  user-select: none;
+}
+.btn-icon:hover,
+.btn-icon-active {
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+/* Dropdown panel */
+.dropdown-menu-custom {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 999;
+  min-width: 170px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e4e7ec);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 0.4rem 0;
+  animation: dropFadeIn 0.15s ease;
+}
+
+@keyframes dropFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-color, #e4e7ec);
+  margin: 0.3rem 0;
+}
+
+/* Dropdown items */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-main, #1a1a2e);
+  text-align: left;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+.dropdown-item:hover {
+  background: #f5f5f5;
+}
+.dropdown-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.dropdown-item-danger {
+  color: #e53e3e;
+}
+.dropdown-item-danger:hover {
+  background: #fff5f5;
+}
+.dropdown-item-success {
+  color: #38a169;
+}
+.dropdown-item-success:hover {
+  background: #f0fff4;
+}
+.dropdown-item-muted {
+  color: var(--text-muted, #667085);
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  color: #ffffff;
+  border-color: var(--success-color);
+}
+
+.btn-success:hover {
+  background-color: #15803d;
 }
 
 .table {
@@ -429,7 +668,7 @@ a:hover {
 
 .table th {
   background-color: #f8fafc;
-  padding: 0.85rem 1.25rem;
+  padding: 0.6rem 1rem;
   font-weight: 700;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -438,7 +677,7 @@ a:hover {
 }
 
 .table td {
-  padding: 0.85rem 1.25rem;
+  padding: 0.6rem 1rem;
   border-bottom: 1px solid var(--border-color);
   font-size: 0.875rem;
   color: var(--text-main);
@@ -500,6 +739,12 @@ a:hover {
   background-color: var(--warning-light);
   color: var(--warning-color);
   border: 1px solid rgba(217, 119, 6, 0.2);
+}
+
+.badge-secondary {
+  background-color: rgba(100, 116, 139, 0.08);
+  color: #64748b;
+  border: 1px solid rgba(100, 116, 139, 0.25);
 }
 
 /* Modals with cleaner shapes */
@@ -614,20 +859,38 @@ a:hover {
   body {
     background-color: #ffffff;
     color: #000000;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .app-container {
+    display: block !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
   }
   .sidebar, .top-navbar, .btn, .no-print, .modal-overlay {
     display: none !important;
   }
   .main-wrapper {
     width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
   }
   .content-body {
     padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
   .card {
     border: none !important;
     box-shadow: none !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: visible !important;
+  }
+  .table-container {
+    max-height: none !important;
+    overflow: visible !important;
+    border: none !important;
   }
 }

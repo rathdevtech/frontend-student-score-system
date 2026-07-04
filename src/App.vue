@@ -4,6 +4,12 @@ import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();
 
+const getAvatarUrl = (path: string | null | undefined) => {
+  if (!path) return 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+  if (path.startsWith('http')) return path;
+  return `http://localhost:8000${path}`;
+};
+
 const handleLogout = () => {
   authStore.logout();
 };
@@ -14,9 +20,16 @@ const handleLogout = () => {
   <div v-if="authStore.isAuthenticated" class="app-container">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="logo-section">
-        <span class="logo-icon">PN</span>
-        <span>Score Roster</span>
+      <div class="logo-section" style="background-color: #ffffff; border-bottom: 1px solid var(--sidebar-border); padding: 0.5rem 0.25rem 1.25rem 0.25rem; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem;">
+        <!-- Cropped Circle Icon from the Logo Image without border-radius clip clipping -->
+        <div style="width: 44px; height: 44px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center;">
+          <img src="/pn_logo.png" alt="PN Icon" style="height: 44px; width: auto; display: block;" />
+        </div>
+        <!-- High-quality typography branding -->
+        <div style="display: flex; flex-direction: column; line-height: 1.15;">
+          <span style="font-size: 0.85rem; font-weight: 800; color: #1e293b; letter-spacing: 0.05em; font-family: var(--font-family);">PASSERELLES</span>
+          <span style="font-size: 0.7rem; font-weight: 700; color: var(--primary-color); letter-spacing: 0.08em; font-family: var(--font-family);">NUMÉRIQUES</span>
+        </div>
       </div>
 
       <nav class="menu-section">
@@ -47,20 +60,21 @@ const handleLogout = () => {
 
     <!-- Main Wrapper -->
     <div class="main-wrapper">
-      <header class="top-navbar">
+      <header class="top-navbar" style="border-bottom: 1px solid var(--sidebar-border); padding: 0.85rem 1.75rem;">
         <!-- Left: Logo Area -->
-        <div class="pn-logo-area">
-          <span style="font-size: 1.75rem;">🎓</span>
-          <div>
-            <div class="pn-logo-title">Passerelles Numériques</div>
-            <div class="pn-logo-subtitle">Cambodia Academic Board</div>
+        <div class="pn-logo-area" style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="background-color: var(--primary-light); color: var(--primary-color); width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 700;">
+            📊
           </div>
+          <span style="font-size: 1.15rem; font-weight: 800; color: #0f172a; letter-spacing: -0.015em; font-family: var(--font-family);">
+            Student Score Management System
+          </span>
         </div>
 
         <!-- Right: Profile Info & Logout Button -->
         <div style="display: flex; align-items: center; gap: 0.75rem; border-left: 1px solid var(--border-color); padding-left: 1rem; height: 36px;">
           <img
-            :src="authStore.user?.avatar || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'"
+            :src="getAvatarUrl(authStore.user?.avatar)"
             alt="Avatar"
             class="user-avatar"
             style="width: 32px; height: 32px;"

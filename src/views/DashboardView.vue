@@ -4,6 +4,17 @@ import api from '@/services/api';
 
 const loading = ref(true);
 const dashboardData = ref<any>(null);
+const showWelcome = ref(localStorage.getItem('dashboard_welcome_hidden') !== 'true');
+
+const hideWelcome = () => {
+  showWelcome.value = false;
+  localStorage.setItem('dashboard_welcome_hidden', 'true');
+};
+
+const restoreWelcome = () => {
+  showWelcome.value = true;
+  localStorage.removeItem('dashboard_welcome_hidden');
+};
 
 const fetchDashboard = async () => {
   try {
@@ -27,13 +38,22 @@ onMounted(() => {
   </div>
   <div v-else-if="dashboardData">
     <!-- Greeting Card -->
-    <div class="card" style="background-color: var(--primary-light); border-left: 5px solid var(--primary-color); padding: 1.5rem; margin-bottom: 1.5rem;">
+    <div v-if="showWelcome" class="card" style="background-color: var(--primary-light); border-left: 5px solid var(--primary-color); padding: 1.5rem; margin-bottom: 1.5rem; position: relative;">
+      <button
+        @click="hideWelcome"
+        title="Hide welcome banner"
+        style="position: absolute; top: 0.75rem; right: 0.75rem; background: none; border: none; cursor: pointer; font-size: 1rem; color: var(--text-muted); line-height: 1; padding: 0.2rem 0.4rem; border-radius: 4px; transition: background 0.15s;"
+        onmouseover="this.style.background='rgba(0,0,0,0.06)'" onmouseout="this.style.background='none'"
+      >✕</button>
       <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--primary-color); margin-bottom: 0.25rem;">
         Welcome, {{ dashboardData.role === 'admin' ? 'Administrator' : 'Teacher / Trainer' }}!
       </h2>
       <p style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">
         Replace manual grading with our accurate digital score manager. Access student rosters, calculate final grades, and print transcripts.
       </p>
+    </div>
+    <div v-else style="margin-bottom: 1rem; text-align: right;">
+      <button @click="restoreWelcome" style="background: none; border: none; color: var(--text-muted); font-size: 0.78rem; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;">Show welcome banner</button>
     </div>
 
     <!-- Stats Grid -->

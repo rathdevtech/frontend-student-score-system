@@ -19,10 +19,16 @@ const loadingTranscript = ref(false);
 const loadClasses = async () => {
   try {
     const res = await api.get('/classes');
-    classes.value = res.data;
+    classes.value = res.data.filter((c: any) => c.is_active !== false);
   } catch (err) {
     console.error('Failed to load classes', err);
   }
+};
+
+const getPhotoUrl = (path: string | null) => {
+  if (!path) return 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+  if (path.startsWith('http')) return path;
+  return `http://localhost:8000${path}`;
 };
 
 onMounted(() => {
@@ -265,7 +271,7 @@ const handlePrint = () => {
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; background-color: #f8fafc; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
             <div style="display: flex; gap: 1rem; align-items: center; grid-column: span 2;">
               <img
-                :src="studentTranscriptData.student.photo || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'"
+                :src="getPhotoUrl(studentTranscriptData.student.photo)"
                 alt="Photo"
                 style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color);"
               />
@@ -293,31 +299,42 @@ const handlePrint = () => {
             <table class="table">
               <thead>
                 <tr>
-                  <th>Subject</th>
-                  <th style="text-align: center;">Quiz (20%)</th>
-                  <th style="text-align: center;">Assignment (10%)</th>
-                  <th style="text-align: center;">Midterm (30%)</th>
-                  <th style="text-align: center;">Final (40%)</th>
-                  <th style="text-align: center;">Total (100%)</th>
-                  <th style="text-align: center;">Grade</th>
+                  <th style="width: 25%;">Subject</th>
+                  <th style="text-align: left;">Scoring Component Breakdown</th>
+                  <th style="text-align: center; width: 15%;">Total Score</th>
+                  <th style="text-align: center; width: 12%;">Grade</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="s in studentTranscriptData.scores" :key="s.subject_name">
-                  <td style="font-weight: 700; color: var(--primary-color);">{{ s.subject_name }}</td>
-                  <td style="text-align: center;">{{ s.quiz }}</td>
-                  <td style="text-align: center;">{{ s.assignment }}</td>
-                  <td style="text-align: center;">{{ s.midterm }}</td>
-                  <td style="text-align: center;">{{ s.final }}</td>
-                  <td style="text-align: center; font-weight: 700;">{{ s.total }}</td>
-                  <td style="text-align: center;">
-                    <span class="badge" :class="s.total >= 50 ? 'badge-success' : 'badge-danger'">
+                  <td style="font-weight: 700; color: var(--primary-color); vertical-align: middle;">
+                    {{ s.subject_name }}
+                  </td>
+                  <td style="text-align: left; vertical-align: middle; padding: 0.75rem 1rem;">
+                    <div v-if="s.components_breakdown && s.components_breakdown.length > 0" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                      <div
+                        v-for="(comp, idx) in s.components_breakdown"
+                        :key="idx"
+                        style="background: #f1f5f9; border: 1px solid var(--border-color); padding: 0.3rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.78rem;"
+                      >
+                        <span style="font-weight: 600; color: var(--text-muted);">{{ comp.label }}:</span>
+                        <strong style="color: var(--text-main); margin-left: 0.25rem;">{{ comp.score }}</strong>
+                        <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 0.15rem;">({{ comp.weight }}%)</span>
+                      </div>
+                    </div>
+                    <span v-else style="color: var(--text-muted); font-size: 0.85rem;">No component details</span>
+                  </td>
+                  <td style="text-align: center; font-weight: 800; font-size: 1.05rem; color: var(--primary-color); vertical-align: middle;">
+                    {{ s.total }}%
+                  </td>
+                  <td style="text-align: center; vertical-align: middle;">
+                    <span class="badge" :class="s.total >= 50 ? 'badge-success' : 'badge-danger'" style="font-size: 0.85rem; padding: 0.3rem 0.6rem;">
                       {{ s.grade }}
                     </span>
                   </td>
                 </tr>
                 <tr v-if="studentTranscriptData.scores.length === 0">
-                  <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                  <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">
                     No subject scores graded yet.
                   </td>
                 </tr>

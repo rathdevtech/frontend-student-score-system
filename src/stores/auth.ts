@@ -99,9 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null;
     try {
       const response = await api.post('/user/profile', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: {},
       });
       user.value = response.data.user;
       localStorage.setItem('auth_user', JSON.stringify(response.data.user));

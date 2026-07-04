@@ -9,15 +9,23 @@ const email = ref(authStore.user?.email || '');
 const password = ref('');
 const passwordConfirmation = ref('');
 const avatarFile = ref<File | null>(null);
+const avatarPreviewUrl = ref<string | null>(null);
 
 const successMessage = ref('');
 const errorMessage = ref('');
 const updating = ref(false);
 
+const getAvatarUrl = (path: string | null | undefined) => {
+  if (!path) return 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+  if (path.startsWith('http')) return path;
+  return `http://localhost:8000${path}`;
+};
+
 const onAvatarChange = (e: any) => {
   const files = e.target.files;
   if (files && files.length > 0) {
     avatarFile.value = files[0];
+    avatarPreviewUrl.value = URL.createObjectURL(files[0]);
   }
 };
 
@@ -51,6 +59,7 @@ const handleUpdateProfile = async () => {
       password.value = '';
       passwordConfirmation.value = '';
       avatarFile.value = null;
+      avatarPreviewUrl.value = null;
     } else {
       errorMessage.value = authStore.error || 'Failed to update profile.';
     }
@@ -81,7 +90,7 @@ const handleUpdateProfile = async () => {
         <!-- Profile Picture Section -->
         <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; gap: 0.75rem;">
           <img
-            :src="authStore.user?.avatar || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'"
+            :src="avatarPreviewUrl || getAvatarUrl(authStore.user?.avatar)"
             alt="Profile Avatar"
             style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); box-shadow: var(--shadow-md);"
           />

@@ -17,10 +17,18 @@ const saving = ref(false);
 const fetchError = ref('');
 const successMessage = ref('');
 
+const getDefaultComponents = () => [
+  { key: 'quiz', label: 'Quiz', weight: 20 },
+  { key: 'assignment', label: 'Assignment', weight: 10 },
+  { key: 'midterm', label: 'Midterm', weight: 30 },
+  { key: 'final', label: 'Final', weight: 40 }
+];
+const subjectComponents = ref<any[]>(getDefaultComponents());
+
 const loadClasses = async () => {
   try {
     const res = await api.get('/classes');
-    classes.value = res.data;
+    classes.value = res.data.filter((c: any) => c.is_active !== false);
   } catch (err) {
     console.error('Failed to load classes', err);
   }
@@ -59,7 +67,14 @@ const fetchScores = async () => {
         subject_id: selectedSubjectId.value
       }
     });
-    studentScores.value = res.data;
+
+    if (res.data && res.data.score_components) {
+      subjectComponents.value = res.data.score_components;
+      studentScores.value = res.data.scores;
+    } else {
+      subjectComponents.value = getDefaultComponents();
+      studentScores.value = Array.isArray(res.data) ? res.data : [];
+    }
   } catch (err: any) {
     fetchError.value = err.response?.data?.message || 'Failed to load scores for the selected configuration.';
   } finally {
@@ -75,13 +90,15 @@ watch([selectedClassId, selectedSubjectId], () => {
 
 // Client-side formula for immediate calculation feedback
 const calculateRow = (row: any) => {
-  const q = Number(row.quiz) || 0;
-  const a = Number(row.assignment) || 0;
-  const m = Number(row.midterm) || 0;
-  const f = Number(row.final) || 0;
+  if (!row.components) row.components = {};
   
-  // Final Score = (Quiz × 20%) + (Assignment × 10%) + (Midterm × 30%) + (Final × 40%)
-  const total = (q * 0.20) + (a * 0.10) + (m * 0.30) + (f * 0.40);
+  let total = 0;
+  subjectComponents.value.forEach(c => {
+    const scoreVal = Number(row.components[c.key]) || 0;
+    const weightFraction = (Number(c.weight) || 0) / 100;
+    total += scoreVal * weightFraction;
+  });
+
   row.total = Number(total.toFixed(2));
   
   // Grade Rules determination
@@ -99,13 +116,16 @@ const saveBulkScores = async () => {
   successMessage.value = '';
   
   // Format data for api/scores/bulk
-  const scoresPayload = studentScores.value.map(row => ({
-    student_id: row.student_id,
-    quiz: Number(row.quiz),
-    assignment: Number(row.assignment),
-    midterm: Number(row.midterm),
-    final: Number(row.final)
-  }));
+  const scoresPayload = studentScores.value.map(row => {
+    const comps: any = {};
+    subjectComponents.value.forEach(c => {
+      comps[c.key] = Number(row.components[c.key]) || 0;
+    });
+    return {
+      student_id: row.student_id,
+      components: comps
+    };
+  });
   
   try {
     await api.post('/scores/bulk', {
@@ -119,6 +139,101 @@ const saveBulkScores = async () => {
   } finally {
     saving.value = false;
   }
+};
+
+const downloadScoresTemplate = () => {
+  if (studentScores.value.length === 0) return;
+
+  const componentKeys = subjectComponents.value.map(c => c.key);
+  const headers = ['student_id', 'student_name', ...componentKeys].join(',');
+
+  const rows = studentScores.value.map(row => {
+    const studentId = row.student_id;
+    const studentName = row.student_name;
+    const scoreVals = componentKeys.map(key => {
+      const val = row.components && row.components[key] !== undefined ? row.components[key] : '';
+      return val;
+    });
+    return [studentId, `"${studentName}"`, ...scoreVals].join(',');
+  });
+
+  const csvContent = headers + '\n' + rows.join('\n') + '\n';
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+
+  const selectedClass = classes.value.find(c => c.id === Number(selectedClassId.value));
+  const selectedSubject = availableSubjects.value.find(s => s.id === Number(selectedSubjectId.value));
+  const filename = `${selectedClass?.name || 'class'}_${selectedSubject?.name || 'subject'}_grades.csv`.replace(/\s+/g, '_').toLowerCase();
+
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const triggerScoresImport = () => {
+  document.getElementById('scoresCsvFileInput')?.click();
+};
+
+const handleScoresImport = (e: any) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (event: any) => {
+    const text = event.target.result;
+    const lines = text.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
+    if (lines.length <= 1) {
+      alert('The CSV file is empty or missing data rows.');
+      return;
+    }
+
+    const headers = lines[0].toLowerCase().split(',').map((h: string) => h.trim());
+    const studentIdIdx = headers.indexOf('student_id');
+
+    if (studentIdIdx === -1) {
+      alert('Invalid template format. The CSV must contain a "student_id" header.');
+      return;
+    }
+
+    const compIdxs: { [key: string]: number } = {};
+    subjectComponents.value.forEach(c => {
+      compIdxs[c.key] = headers.indexOf(c.key.toLowerCase());
+    });
+
+    let successCount = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',').map((c: string) => c.trim().replace(/^"|"$/g, ''));
+      if (cols.length < headers.length) continue;
+
+      const studentId = Number(cols[studentIdIdx]);
+      if (isNaN(studentId)) continue;
+
+      const matchedRowIndex = studentScores.value.findIndex(row => row.student_id === studentId);
+      if (matchedRowIndex === -1) continue;
+
+      if (!studentScores.value[matchedRowIndex].components) {
+        studentScores.value[matchedRowIndex].components = {};
+      }
+
+      subjectComponents.value.forEach(c => {
+        const idx = compIdxs[c.key] ?? -1;
+        if (idx !== -1 && cols[idx] !== undefined) {
+          const rawScore = cols[idx];
+          studentScores.value[matchedRowIndex].components[c.key] = rawScore === '' ? 0 : Number(rawScore);
+        }
+      });
+
+      calculateRow(studentScores.value[matchedRowIndex]);
+      successCount++;
+    }
+
+    e.target.value = '';
+    alert(`Import finished.\nLoaded grades for ${successCount} students in the grid.\n\nPlease click "Save Grades" to save to the database.`);
+  };
+  reader.readAsText(file);
 };
 </script>
 
@@ -156,11 +271,23 @@ const saveBulkScores = async () => {
 
     <!-- Grade Book Grid -->
     <div v-if="selectedClassId && selectedSubjectId" class="card" style="padding: 0; overflow: hidden;">
-      <div class="card-header" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 0;">
-        <h3 class="card-title">Gradebook Grid Sheet</h3>
-        <button class="btn btn-primary btn-sm" @click="saveBulkScores" :disabled="saving || studentScores.length === 0">
-          {{ saving ? 'Saving scores...' : '💾 Save Grades' }}
-        </button>
+      <div class="card-header" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 0; flex-wrap: wrap; gap: 1rem;">
+        <h3 class="card-title" style="margin-right: auto; margin-bottom: 0;">Gradebook Grid Sheet</h3>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <!-- Template Download Link -->
+          <button class="btn btn-secondary btn-sm" @click="downloadScoresTemplate" :disabled="studentScores.length === 0" title="Download CSV template with enrolled student list">
+            📄 Template
+          </button>
+          <!-- Import Button -->
+          <button class="btn btn-secondary btn-sm" @click="triggerScoresImport" :disabled="studentScores.length === 0" title="Import grades from CSV file">
+            📥 Import
+          </button>
+          <input type="file" id="scoresCsvFileInput" accept=".csv" @change="handleScoresImport" style="display: none;" />
+
+          <button class="btn btn-primary btn-sm" @click="saveBulkScores" :disabled="saving || studentScores.length === 0">
+            {{ saving ? 'Saving scores...' : '💾 Save Grades' }}
+          </button>
+        </div>
       </div>
 
       <div v-if="loading" style="text-align: center; padding: 3rem; font-weight: 600;">
@@ -177,10 +304,9 @@ const saveBulkScores = async () => {
             <tr>
               <th>Student Name</th>
               <th>Gender</th>
-              <th style="text-align: center; width: 110px;">Quiz (20%)</th>
-              <th style="text-align: center; width: 110px;">Assignment (10%)</th>
-              <th style="text-align: center; width: 110px;">Midterm (30%)</th>
-              <th style="text-align: center; width: 110px;">Final (40%)</th>
+              <th v-for="comp in subjectComponents" :key="comp.key" style="text-align: center; width: 110px;">
+                {{ comp.label }} ({{ comp.weight }}%)
+              </th>
               <th style="text-align: center; width: 110px;">Total (100%)</th>
               <th style="text-align: center; width: 110px;">Grade</th>
             </tr>
@@ -193,39 +319,9 @@ const saveBulkScores = async () => {
             >
               <td style="font-weight: 600;">{{ row.student_name }}</td>
               <td>{{ row.gender || 'N/A' }}</td>
-              <td style="text-align: center;">
+              <td v-for="comp in subjectComponents" :key="comp.key" style="text-align: center;">
                 <input
-                  v-model.number="row.quiz"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="any"
-                  @input="calculateRow(row)"
-                />
-              </td>
-              <td style="text-align: center;">
-                <input
-                  v-model.number="row.assignment"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="any"
-                  @input="calculateRow(row)"
-                />
-              </td>
-              <td style="text-align: center;">
-                <input
-                  v-model.number="row.midterm"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="any"
-                  @input="calculateRow(row)"
-                />
-              </td>
-              <td style="text-align: center;">
-                <input
-                  v-model.number="row.final"
+                  v-model.number="row.components[comp.key]"
                   type="number"
                   min="0"
                   max="100"

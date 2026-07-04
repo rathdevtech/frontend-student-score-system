@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import api from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
@@ -11,12 +11,32 @@ const subjects = ref<any[]>([]);
 const loading = ref(true);
 
 const showAddModal = ref(false);
+const openDropdownId = ref<number | null>(null);
 const showSubjectsModal = ref(false);
 const modalClass = ref<any>(null);
+
+const totalClasses = computed(() => classes.value.length);
+const activeClasses = computed(() => classes.value.filter(c => c.is_active !== false).length);
+const inactiveClasses = computed(() => totalClasses.value - activeClasses.value);
+const selectedIds = ref<number[]>([]);
+
+const isAllSelected = computed(() => {
+  if (classes.value.length === 0) return false;
+  return classes.value.every(c => selectedIds.value.includes(c.id));
+});
+
+const toggleSelectAll = (e: Event) => {
+  if ((e.target as HTMLInputElement).checked) {
+    selectedIds.value = classes.value.map(c => c.id);
+  } else {
+    selectedIds.value = [];
+  }
+};
 
 // Form fields for adding/editing class
 const className = ref('');
 const classTeacherId = ref('');
+const classIsActive = ref(true);
 const isEditing = ref(false);
 const editClassId = ref<number | null>(null);
 
@@ -99,11 +119,14 @@ onMounted(async () => {
     if (!teachers.value.find(t => t.id === 2)) teachers.value.push({ id: 2, name: 'Professor John Miller' });
     if (!teachers.value.find(t => t.id === 3)) teachers.value.push({ id: 3, name: 'Professor Sarah Connor' });
   }
+  // Close dropdown on outside click
+  document.addEventListener('click', () => { openDropdownId.value = null; });
 });
 
 const openAddModal = () => {
   className.value = '';
   classTeacherId.value = '';
+  classIsActive.value = true;
   isEditing.value = false;
   showAddModal.value = true;
 };
@@ -111,6 +134,7 @@ const openAddModal = () => {
 const openEditModal = (c: any) => {
   className.value = c.name;
   classTeacherId.value = c.teacher_id || '';
+  classIsActive.value = c.is_active !== false;
   isEditing.value = true;
   editClassId.value = c.id;
   showAddModal.value = true;
@@ -120,7 +144,8 @@ const saveClass = async () => {
   try {
     const payload = {
       name: className.value,
-      teacher_id: classTeacherId.value ? Number(classTeacherId.value) : null
+      teacher_id: classTeacherId.value ? Number(classTeacherId.value) : null,
+      is_active: classIsActive.value
     };
 
     if (isEditing.value && editClassId.value) {
@@ -135,6 +160,102 @@ const saveClass = async () => {
   }
 };
 
+const toggleClassStatus = async (c: any) => {
+  try {
+    await api.put(`/classes/${c.id}`, { is_active: !c.is_active });
+    await fetchData();
+  } catch (err) {
+    alert('Failed to update class status.');
+  }
+};
+
+const bulkSetStatus = async (status: boolean) => {
+  if (selectedIds.value.length === 0) return;
+
+  loading.value = true;
+  for (const id of selectedIds.value) {
+    try {
+      await api.put(`/classes/${id}`, { is_active: status });
+    } catch (err) {
+      console.error(`Failed to update class ${id}`, err);
+    }
+  }
+  selectedIds.value = [];
+  loading.value = false;
+  await fetchData();
+};
+
+const downloadClassTemplate = () => {
+  const headers = 'name\n';
+  const rows = 'Class 2027C\nClass 2027D\n';
+  const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', 'classes_template.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const triggerClassImport = () => {
+  document.getElementById('classCsvFileInput')?.click();
+};
+
+const handleClassImport = async (e: any) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (event: any) => {
+    const text = event.target.result;
+    const lines = text.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
+    if (lines.length <= 1) {
+      alert('The CSV file is empty or missing data rows.');
+      return;
+    }
+
+    const headers = lines[0].toLowerCase().split(',').map((h: string) => h.trim());
+    const nameIdx = headers.indexOf('name');
+
+    if (nameIdx === -1) {
+      alert('Invalid template format. The CSV must contain a "name" header.');
+      return;
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+    let errors: string[] = [];
+
+    loading.value = true;
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',').map((c: string) => c.trim());
+      if (cols.length < headers.length) continue;
+
+      const name = cols[nameIdx];
+
+      try {
+        await api.post('/classes', { name, teacher_id: null });
+        successCount++;
+      } catch (err: any) {
+        failCount++;
+        errors.push(`Row ${i + 1} (${name}): ${err.response?.data?.message || 'Failed'}`);
+      }
+    }
+
+    loading.value = false;
+    e.target.value = '';
+
+    let msg = `Import finished.\nSuccessfully imported: ${successCount} classes.`;
+    if (failCount > 0) {
+      msg += `\nFailed to import: ${failCount} classes.\n\nErrors:\n` + errors.slice(0, 5).join('\n');
+      if (errors.length > 5) msg += `\n...and ${errors.length - 5} more errors.`;
+    }
+    alert(msg);
+    await fetchData();
+  };
+  reader.readAsText(file);
+};
+
 const deleteClass = async (id: number) => {
   if (confirm('Are you sure you want to delete this class? This will delete all students and scores associated with it.')) {
     try {
@@ -143,6 +264,24 @@ const deleteClass = async (id: number) => {
     } catch (err) {
       alert('Failed to delete class.');
     }
+  }
+};
+
+const bulkDelete = async () => {
+  if (selectedIds.value.length === 0) return;
+
+  if (confirm(`Are you sure you want to delete the ${selectedIds.value.length} selected classes? This will delete all students and scores associated with them.`)) {
+    loading.value = true;
+    for (const id of selectedIds.value) {
+      try {
+        await api.delete(`/classes/${id}`);
+      } catch (err) {
+        console.error(`Failed to delete class ${id}`, err);
+      }
+    }
+    selectedIds.value = [];
+    loading.value = false;
+    await fetchData();
   }
 };
 
@@ -190,53 +329,137 @@ const saveSubjects = async () => {
     Loading classes roster...
   </div>
   <div v-else>
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">School Roster & Classes</h3>
-        <button v-if="authStore.isAdmin" class="btn btn-primary btn-sm" @click="openAddModal">
-          ➕ Create Class
-        </button>
+    <div class="card roster-shell">
+      <div class="card-header roster-header">
+        <div>
+          <h3 class="card-title">School Roster & Classes</h3>
+          <p class="roster-subtitle">Manage class availability, advisors, and assignments in one place.</p>
+        </div>
+        <div v-if="authStore.isAdmin" style="display: flex; gap: 0.5rem; align-items: center;">
+          <!-- Template Download Link -->
+          <button class="btn btn-secondary btn-sm" @click="downloadClassTemplate" title="Download CSV template">
+            📄 Template
+          </button>
+          <!-- Import Button -->
+          <button class="btn btn-secondary btn-sm" @click="triggerClassImport" title="Import classes from CSV file">
+            📥 Import
+          </button>
+          <input type="file" id="classCsvFileInput" accept=".csv" @change="handleClassImport" style="display: none;" />
+
+          <button class="btn btn-primary btn-sm" @click="openAddModal">
+            ➕ Create Class
+          </button>
+        </div>
+      </div>
+
+      <div class="roster-summary">
+        <div class="roster-summary-card">
+          <span class="roster-summary-label">Total Classes</span>
+          <strong>{{ totalClasses }}</strong>
+        </div>
+        <div class="roster-summary-card active">
+          <span class="roster-summary-label">Active</span>
+          <strong>{{ activeClasses }}</strong>
+        </div>
+        <div class="roster-summary-card inactive">
+          <span class="roster-summary-label">Inactive</span>
+          <strong>{{ inactiveClasses }}</strong>
+        </div>
+      </div>
+
+      <div v-if="authStore.isAdmin && selectedIds.length > 0" style="background: var(--primary-light); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px dashed var(--primary-color); display: flex; align-items: center; justify-content: space-between; margin: 1rem; margin-top: 0; gap: 1rem; flex-wrap: wrap;">
+        <span style="font-weight: 600; font-size: 0.85rem; color: var(--primary-color);">
+          Selected {{ selectedIds.length }} class(es)
+        </span>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn btn-success btn-sm" @click="bulkSetStatus(true)" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Set Active</button>
+          <button class="btn btn-secondary btn-sm" @click="bulkSetStatus(false)" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Set Inactive</button>
+          <button class="btn btn-danger btn-sm" @click="bulkDelete" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete Selected</button>
+        </div>
       </div>
 
       <div class="table-container">
-        <table class="table">
+        <table class="table roster-table">
           <thead>
             <tr>
+              <th v-if="authStore.isAdmin" style="width: 40px; text-align: center;">
+                <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
+              </th>
               <th>ID</th>
               <th>Class Name</th>
-              <th>Class Advisor (Teacher)</th>
               <th>Assigned Subjects</th>
+              <th>Status</th>
               <th v-if="authStore.isAdmin" style="text-align: right;">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="c in classes" :key="c.id">
-              <td>{{ c.id }}</td>
-              <td style="font-weight: 700; color: var(--primary-color);">{{ c.name }}</td>
-              <td>{{ c.teacher ? c.teacher.name : 'Unassigned' }}</td>
+            <tr v-for="c in classes" :key="c.id" class="roster-row" :class="c.is_active === false ? 'roster-row-inactive' : ''">
+              <td v-if="authStore.isAdmin" style="text-align: center;" @click.stop>
+                <input type="checkbox" :value="c.id" v-model="selectedIds" />
+              </td>
+              <td>#{{ c.id }}</td>
               <td>
-                <span v-if="c.subjects.length === 0" style="color: var(--text-muted); font-size: 0.8rem;">No subjects assigned</span>
-                <div v-else style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-                  <span v-for="s in c.subjects" :key="s.id" class="badge badge-info" style="font-size: 0.75rem;">
-                    {{ s.name }} ({{ s.pivot?.teacher_id ? teachers.find(t => t.id === s.pivot.teacher_id)?.name.split(' ').pop() : 'No Teacher' }})
+                <div class="class-name-cell">
+                  <span class="class-name">{{ c.name }}</span>
+                </div>
+              </td>
+              <td>
+                <span v-if="c.subjects.length === 0" class="empty-subjects">No subjects assigned</span>
+                <div v-else class="subject-badges">
+                  <span v-for="s in c.subjects" :key="s.id" class="badge badge-info subject-badge">
+                    {{ s.name }}
                   </span>
                 </div>
               </td>
+              <td>
+                <span class="badge" :class="c.is_active !== false ? 'badge-success' : 'badge-secondary'">
+                  {{ c.is_active !== false ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
               <td v-if="authStore.isAdmin" style="text-align: right;">
-                <div style="display: inline-flex; gap: 0.5rem;">
+                <div class="action-group">
+                  <!-- Subjects button stays standalone -->
                   <button class="btn btn-secondary btn-sm" @click="openSubjectsModal(c)" title="Assign Subjects">
                     📚 Subjects
                   </button>
-                  <button class="btn btn-secondary btn-sm" @click="openEditModal(c)">
-                    ✏️ Edit
-                  </button>
-                  <button class="btn btn-danger btn-sm" @click="deleteClass(c.id)">
-                    🗑️ Delete
-                  </button>
+
+                  <!-- ⋮ Dropdown for Active/Edit/Delete -->
+                  <div class="dropdown-wrapper" @click.stop>
+                    <button
+                      class="btn btn-icon btn-sm"
+                      :class="openDropdownId === c.id ? 'btn-icon-active' : ''"
+                      @click="openDropdownId = openDropdownId === c.id ? null : c.id"
+                      title="More actions"
+                    >⋮</button>
+                    <div v-if="openDropdownId === c.id" class="dropdown-menu-custom">
+                      <button
+                        class="dropdown-item"
+                        :class="c.is_active !== false ? 'dropdown-item-success' : 'dropdown-item-muted'"
+                        @click="toggleClassStatus(c); openDropdownId = null"
+                      >
+                        <span>{{ c.is_active !== false ? '✅' : '⚪' }}</span>
+                        {{ c.is_active !== false ? 'Set Inactive' : 'Set Active' }}
+                      </button>
+                      <button
+                        class="dropdown-item"
+                        @click="openEditModal(c); openDropdownId = null"
+                      >
+                        <span>✏️</span> Edit
+                      </button>
+                      <div class="dropdown-divider"></div>
+                      <button
+                        class="dropdown-item dropdown-item-danger"
+                        @click="deleteClass(c.id); openDropdownId = null"
+                      >
+                        <span>🗑️</span> Delete
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </td>
             </tr>
           </tbody>
+
         </table>
       </div>
     </div>
@@ -258,6 +481,13 @@ const saveSubjects = async () => {
             <select v-model="classTeacherId" class="form-control form-select">
               <option value="">None (Unassigned)</option>
               <option v-for="t in teachers" :key="t.id" :value="t.id">{{ t.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Class Status</label>
+            <select v-model="classIsActive" class="form-control form-select">
+              <option :value="true">Active</option>
+              <option :value="false">Inactive</option>
             </select>
           </div>
           <div class="modal-footer">

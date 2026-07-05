@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import api from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
+import { useUiStore } from '@/stores/ui';
 
 const authStore = useAuthStore();
+const uiStore = useUiStore();
 
 const classes = ref<any[]>([]);
 const teachers = ref<any[]>([]);
@@ -19,6 +21,22 @@ const totalClasses = computed(() => classes.value.length);
 const activeClasses = computed(() => classes.value.filter(c => c.is_active !== false).length);
 const inactiveClasses = computed(() => totalClasses.value - activeClasses.value);
 const selectedIds = ref<number[]>([]);
+
+// Pagination State
+const currentPage = ref(1);
+const itemsPerPage = ref(5);
+
+watch(itemsPerPage, () => {
+  currentPage.value = 1;
+});
+
+const totalPages = computed(() => Math.ceil(classes.value.length / itemsPerPage.value));
+
+const paginatedClasses = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return classes.value.slice(start, end);
+});
 
 const isAllSelected = computed(() => {
   if (classes.value.length === 0) return false;
@@ -48,6 +66,10 @@ const fetchData = async () => {
   try {
     const classRes = await api.get('/classes');
     classes.value = classRes.data;
+    const maxPage = Math.ceil(classes.value.length / itemsPerPage.value);
+    if (currentPage.value > maxPage) {
+      currentPage.value = Math.max(1, maxPage);
+    }
 
     if (authStore.isAdmin) {
       // Fetch teachers (users with teacher role) for assignments
@@ -332,37 +354,37 @@ const saveSubjects = async () => {
     <div class="card roster-shell">
       <div class="card-header roster-header">
         <div>
-          <h3 class="card-title">School Roster & Classes</h3>
-          <p class="roster-subtitle">Manage class availability, advisors, and assignments in one place.</p>
+          <h3 class="card-title">{{ uiStore.t('classRosterLabel') }}</h3>
+          <p class="roster-subtitle">{{ uiStore.t('classRosterSubtitle') }}</p>
         </div>
         <div v-if="authStore.isAdmin" style="display: flex; gap: 0.5rem; align-items: center;">
           <!-- Template Download Link -->
           <button class="btn btn-secondary btn-sm" @click="downloadClassTemplate" title="Download CSV template">
-            📄 Template
+            📄 {{ uiStore.t('template') }}
           </button>
           <!-- Import Button -->
           <button class="btn btn-secondary btn-sm" @click="triggerClassImport" title="Import classes from CSV file">
-            📥 Import
+            📥 {{ uiStore.t('importData') }}
           </button>
           <input type="file" id="classCsvFileInput" accept=".csv" @change="handleClassImport" style="display: none;" />
 
           <button class="btn btn-primary btn-sm" @click="openAddModal">
-            ➕ Create Class
+            ➕ {{ uiStore.t('createClass') }}
           </button>
         </div>
       </div>
 
       <div class="roster-summary">
         <div class="roster-summary-card">
-          <span class="roster-summary-label">Total Classes</span>
+          <span class="roster-summary-label">{{ uiStore.t('totalClassesLabel') }}</span>
           <strong>{{ totalClasses }}</strong>
         </div>
         <div class="roster-summary-card active">
-          <span class="roster-summary-label">Active</span>
+          <span class="roster-summary-label">{{ uiStore.t('active') }}</span>
           <strong>{{ activeClasses }}</strong>
         </div>
         <div class="roster-summary-card inactive">
-          <span class="roster-summary-label">Inactive</span>
+          <span class="roster-summary-label">{{ uiStore.t('inactive') }}</span>
           <strong>{{ inactiveClasses }}</strong>
         </div>
       </div>
@@ -372,9 +394,9 @@ const saveSubjects = async () => {
           Selected {{ selectedIds.length }} class(es)
         </span>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <button class="btn btn-success btn-sm" @click="bulkSetStatus(true)" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Set Active</button>
-          <button class="btn btn-secondary btn-sm" @click="bulkSetStatus(false)" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Set Inactive</button>
-          <button class="btn btn-danger btn-sm" @click="bulkDelete" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete Selected</button>
+          <button class="btn btn-success btn-sm" @click="bulkSetStatus(true)" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">{{ uiStore.t('setActive') }}</button>
+          <button class="btn btn-secondary btn-sm" @click="bulkSetStatus(false)" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">{{ uiStore.t('setInactive') }}</button>
+          <button class="btn btn-danger btn-sm" @click="bulkDelete" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">{{ uiStore.t('deleteSelected') }}</button>
         </div>
       </div>
 
@@ -385,15 +407,15 @@ const saveSubjects = async () => {
               <th v-if="authStore.isAdmin" style="width: 40px; text-align: center;">
                 <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
               </th>
-              <th>ID</th>
-              <th>Class Name</th>
-              <th>Assigned Subjects</th>
-              <th>Status</th>
-              <th v-if="authStore.isAdmin" style="text-align: right;">Actions</th>
+              <th>{{ uiStore.t('colId') }}</th>
+              <th>{{ uiStore.t('className') }}</th>
+              <th>{{ uiStore.t('assignedTeacher') }}</th>
+              <th>{{ uiStore.t('status') }}</th>
+              <th v-if="authStore.isAdmin" style="text-align: right;">{{ uiStore.t('actions') }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="c in classes" :key="c.id" class="roster-row" :class="c.is_active === false ? 'roster-row-inactive' : ''">
+            <tr v-for="(c, index) in paginatedClasses" :key="c.id" class="roster-row" :class="c.is_active === false ? 'roster-row-inactive' : ''">
               <td v-if="authStore.isAdmin" style="text-align: center;" @click.stop>
                 <input type="checkbox" :value="c.id" v-model="selectedIds" />
               </td>
@@ -404,7 +426,7 @@ const saveSubjects = async () => {
                 </div>
               </td>
               <td>
-                <span v-if="c.subjects.length === 0" class="empty-subjects">No subjects assigned</span>
+                <span v-if="c.subjects.length === 0" class="empty-subjects">{{ uiStore.t('noSubjectsAssigned') }}</span>
                 <div v-else class="subject-badges">
                   <span v-for="s in c.subjects" :key="s.id" class="badge badge-info subject-badge">
                     {{ s.name }}
@@ -419,8 +441,8 @@ const saveSubjects = async () => {
               <td v-if="authStore.isAdmin" style="text-align: right;">
                 <div class="action-group">
                   <!-- Subjects button stays standalone -->
-                  <button class="btn btn-secondary btn-sm" @click="openSubjectsModal(c)" title="Assign Subjects">
-                    📚 Subjects
+                  <button class="btn btn-secondary btn-sm" @click="openSubjectsModal(c)" :title="uiStore.t('assignSubjects')">
+                    📚 {{ uiStore.t('subjects') }}
                   </button>
 
                   <!-- ⋮ Dropdown for Active/Edit/Delete -->
@@ -429,9 +451,9 @@ const saveSubjects = async () => {
                       class="btn btn-icon btn-sm"
                       :class="openDropdownId === c.id ? 'btn-icon-active' : ''"
                       @click="openDropdownId = openDropdownId === c.id ? null : c.id"
-                      title="More actions"
+                      :title="uiStore.t('moreActions')"
                     >⋮</button>
-                    <div v-if="openDropdownId === c.id" class="dropdown-menu-custom">
+                    <div v-if="openDropdownId === c.id" class="dropdown-menu-custom" :class="{ 'dropdown-menu-up': index >= paginatedClasses.length - 2 }">
                       <button
                         class="dropdown-item"
                         :class="c.is_active !== false ? 'dropdown-item-success' : 'dropdown-item-muted'"
@@ -444,14 +466,14 @@ const saveSubjects = async () => {
                         class="dropdown-item"
                         @click="openEditModal(c); openDropdownId = null"
                       >
-                        <span>✏️</span> Edit
+                        <span>✏️</span> {{ uiStore.t('edit') }}
                       </button>
                       <div class="dropdown-divider"></div>
                       <button
                         class="dropdown-item dropdown-item-danger"
                         @click="deleteClass(c.id); openDropdownId = null"
                       >
-                        <span>🗑️</span> Delete
+                        <span>🗑️</span> {{ uiStore.t('delete') }}
                       </button>
                     </div>
                   </div>
@@ -462,13 +484,58 @@ const saveSubjects = async () => {
 
         </table>
       </div>
+
+      <!-- Pagination Footer -->
+      <div v-if="classes.length > 0" class="pagination-container">
+        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+          <div class="pagination-info">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, classes.length) }} of {{ classes.length }} classes
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.35rem;">
+            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">{{ uiStore.t('show') }}:</span>
+            <select v-model="itemsPerPage" class="pagination-select">
+              <option :value="5">5</option>
+              <option :value="10">10</option>
+              <option :value="25">25</option>
+              <option :value="50">50</option>
+            </select>
+          </div>
+        </div>
+        <div v-if="totalPages > 1" class="pagination-controls">
+          <button
+            class="pagination-btn"
+            :disabled="currentPage === 1"
+            @click="currentPage--"
+            title="Previous Page"
+          >
+            ◀
+          </button>
+          <button
+            v-for="page in totalPages"
+            :key="page"
+            class="pagination-btn"
+            :class="{ active: currentPage === page }"
+            @click="currentPage = page"
+          >
+            {{ page }}
+          </button>
+          <button
+            class="pagination-btn"
+            :disabled="currentPage === totalPages"
+            @click="currentPage++"
+            title="Next Page"
+          >
+            ▶
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Class Create/Edit Modal -->
     <div v-if="showAddModal" class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title">{{ isEditing ? 'Edit Class' : 'Create Class' }}</h3>
+          <h3 class="modal-title">{{ isEditing ? uiStore.t('editClass') : uiStore.t('createClass') }}</h3>
           <button class="modal-close" @click="showAddModal = false">&times;</button>
         </div>
         <form @submit.prevent="saveClass">

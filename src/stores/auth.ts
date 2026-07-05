@@ -5,6 +5,7 @@ import api from '@/services/api';
 export interface User {
   id: number;
   name: string;
+  name_kh?: string | null;
   email: string;
   role: 'admin' | 'teacher';
   avatar: string | null;

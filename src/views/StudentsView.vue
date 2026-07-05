@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import api from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
+import { useUiStore } from '@/stores/ui';
 
 const authStore = useAuthStore();
+const uiStore = useUiStore();
 
 const students = ref<any[]>([]);
 const classes = ref<any[]>([]);
@@ -18,6 +20,7 @@ const showModal = ref(false);
 
 // Form fields
 const studentName = ref('');
+const studentNameKh = ref('');
 const studentClassId = ref('');
 const studentGender = ref('Male');
 const studentPhotoFile = ref<File | null>(null);
@@ -67,6 +70,10 @@ const fetchData = async () => {
 
     const studentRes = await api.get('/students');
     students.value = studentRes.data;
+    const maxPage = Math.ceil(filteredStudents.value.length / itemsPerPage.value);
+    if (currentPage.value > maxPage) {
+      currentPage.value = Math.max(1, maxPage);
+    }
   } catch (err) {
     console.error('Failed to load students roster', err);
   } finally {
@@ -99,6 +106,22 @@ const filteredStudents = computed(() => {
   });
 });
 
+// Pagination State
+const currentPage = ref(1);
+const itemsPerPage = ref(5);
+
+watch([searchQuery, selectedClassFilter, itemsPerPage], () => {
+  currentPage.value = 1;
+});
+
+const totalPages = computed(() => Math.ceil(filteredStudents.value.length / itemsPerPage.value));
+
+const paginatedStudents = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return filteredStudents.value.slice(start, end);
+});
+
 const isAllSelected = computed(() => {
   if (filteredStudents.value.length === 0) return false;
   return filteredStudents.value.every(s => selectedIds.value.includes(s.id));
@@ -122,6 +145,7 @@ const onFileChange = (e: any) => {
 
 const openAddModal = () => {
   studentName.value = '';
+  studentNameKh.value = '';
   studentClassId.value = classes.value[0]?.id || '';
   studentGender.value = 'Male';
   studentPhotoFile.value = null;
@@ -132,6 +156,7 @@ const openAddModal = () => {
 
 const openEditModal = (s: any) => {
   studentName.value = s.name;
+  studentNameKh.value = s.name_kh || '';
   studentClassId.value = s.class_id;
   studentGender.value = s.gender || 'Male';
   studentPhotoFile.value = null;
@@ -149,6 +174,7 @@ const saveStudent = async () => {
       if (studentPhotoFile.value) {
         const formData = new FormData();
         formData.append('name', studentName.value.trim());
+        formData.append('name_kh', studentNameKh.value.trim());
         formData.append('class_id', studentClassId.value);
         formData.append('gender', studentGender.value);
         formData.append('photo', studentPhotoFile.value);
@@ -157,6 +183,7 @@ const saveStudent = async () => {
       } else {
         await api.post(`/students/${editStudentId.value}/update`, {
           name: studentName.value.trim(),
+          name_kh: studentNameKh.value.trim(),
           class_id: studentClassId.value,
           gender: studentGender.value
         });
@@ -165,6 +192,7 @@ const saveStudent = async () => {
       if (studentPhotoFile.value) {
         const formData = new FormData();
         formData.append('name', studentName.value.trim());
+        formData.append('name_kh', studentNameKh.value.trim());
         formData.append('class_id', studentClassId.value);
         formData.append('gender', studentGender.value);
         formData.append('photo', studentPhotoFile.value);
@@ -173,6 +201,7 @@ const saveStudent = async () => {
       } else {
         await api.post('/students', {
           name: studentName.value.trim(),
+          name_kh: studentNameKh.value.trim(),
           class_id: studentClassId.value,
           gender: studentGender.value
         });
@@ -187,8 +216,8 @@ const saveStudent = async () => {
 };
 
 const downloadStudentTemplate = () => {
-  const headers = 'name,gender,class_name\n';
-  const rows = 'Student Name,Male,Class 2027A\nAnother Student,Female,Class 2027B\n';
+  const headers = 'name,name_kh,gender,class_name\n';
+  const rows = 'Student Name,ឈ្មោះសិស្ស,Male,Class 2027A\nAnother Student,ឈ្មោះសិស្សផ្សេងទៀត,Female,Class 2027B\n';
   const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -217,6 +246,7 @@ const handleStudentImport = async (e: any) => {
 
     const headers = lines[0].toLowerCase().split(',').map((h: string) => h.trim());
     const nameIdx = headers.indexOf('name');
+    const nameKhIdx = headers.indexOf('name_kh');
     const genderIdx = headers.indexOf('gender');
     const classIdx = headers.indexOf('class_name');
 
@@ -235,6 +265,7 @@ const handleStudentImport = async (e: any) => {
       if (cols.length < headers.length) continue;
 
       const name = cols[nameIdx];
+      const name_kh = nameKhIdx !== -1 ? cols[nameKhIdx] : '';
       const gender = cols[genderIdx];
       const classNameVal = cols[classIdx];
 
@@ -248,6 +279,7 @@ const handleStudentImport = async (e: any) => {
       try {
         await api.post('/students', {
           name,
+          name_kh,
           gender,
           class_id: matchedClass.id
         });
@@ -325,32 +357,32 @@ const bulkDelete = async () => {
   <div v-else>
     <div class="card">
       <div class="card-header" style="flex-wrap: wrap; gap: 1rem;">
-        <h3 class="card-title" style="margin-bottom: 0;">Students Registry</h3>
+        <h3 class="card-title" style="margin-bottom: 0;">{{ uiStore.t('studentRegistryTitle') }}</h3>
         <div style="display: flex; gap: 0.75rem; flex-grow: 1; justify-content: flex-end; min-width: 280px;">
           <input
             v-model="searchQuery"
             type="text"
             class="form-control"
-            placeholder="🔍 Search student name..."
+            :placeholder="'🔍 ' + uiStore.t('searchStudentPlaceholder')"
             style="max-width: 240px; padding: 0.5rem 0.75rem;"
           />
           <select v-model="selectedClassFilter" class="form-control form-select" style="max-width: 180px; padding: 0.5rem 0.75rem;">
-            <option value="">All Classes</option>
+            <option value="">{{ uiStore.t('allClasses') }}</option>
             <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
           <div v-if="authStore.isAdmin" style="display: flex; gap: 0.5rem; align-items: center;">
             <!-- Template Download Link -->
             <button class="btn btn-secondary btn-sm" @click="downloadStudentTemplate" title="Download CSV template">
-              📄 Template
+              📄 {{ uiStore.t('template') }}
             </button>
             <!-- Import Button -->
             <button class="btn btn-secondary btn-sm" @click="triggerStudentImport" title="Import students from CSV file">
-              📥 Import
+              📥 {{ uiStore.t('importData') }}
             </button>
             <input type="file" id="studentCsvFileInput" accept=".csv" @change="handleStudentImport" style="display: none;" />
 
             <button class="btn btn-primary btn-sm" @click="openAddModal">
-              ➕ Add Student
+              ➕ {{ uiStore.t('createStudent') }}
             </button>
           </div>
         </div>
@@ -361,9 +393,9 @@ const bulkDelete = async () => {
           Selected {{ selectedIds.length }} student(s)
         </span>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <button class="btn btn-success btn-sm" @click="bulkSetStatus(true)" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Set Active</button>
-          <button class="btn btn-secondary btn-sm" @click="bulkSetStatus(false)" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Set Inactive</button>
-          <button class="btn btn-danger btn-sm" @click="bulkDelete" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete Selected</button>
+          <button class="btn btn-success btn-sm" @click="bulkSetStatus(true)" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">{{ uiStore.t('setActive') }}</button>
+          <button class="btn btn-secondary btn-sm" @click="bulkSetStatus(false)" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">{{ uiStore.t('setInactive') }}</button>
+          <button class="btn btn-danger btn-sm" @click="bulkDelete" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">{{ uiStore.t('deleteSelected') }}</button>
         </div>
       </div>
 
@@ -374,16 +406,17 @@ const bulkDelete = async () => {
               <th v-if="authStore.isAdmin" style="width: 40px; text-align: center;">
                 <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
               </th>
-              <th>ID</th>
-              <th>Student Name</th>
-              <th>Class</th>
-              <th>Gender</th>
-              <th>Status</th>
-              <th v-if="authStore.isAdmin" style="text-align: right;">Actions</th>
+              <th>{{ uiStore.t('colId') }}</th>
+              <th>{{ uiStore.t('studentName') }}</th>
+              <th>{{ uiStore.t('studentNameKh') }}</th>
+              <th>{{ uiStore.t('classAssignment') }}</th>
+              <th>{{ uiStore.t('gender') }}</th>
+              <th>{{ uiStore.t('status') }}</th>
+              <th v-if="authStore.isAdmin" style="text-align: right;">{{ uiStore.t('actions') }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="s in filteredStudents" :key="s.id" :class="s.is_active === false ? 'row-inactive' : ''">
+            <tr v-for="(s, index) in paginatedStudents" :key="s.id" :class="s.is_active === false ? 'row-inactive' : ''">
               <td v-if="authStore.isAdmin" style="text-align: center;" @click.stop>
                 <input type="checkbox" :value="s.id" v-model="selectedIds" />
               </td>
@@ -393,8 +426,11 @@ const bulkDelete = async () => {
                   {{ s.name }}
                 </a>
               </td>
+              <td class="kh-text" style="color: var(--text-muted);">
+                {{ s.name_kh || '—' }}
+              </td>
               <td>
-                <span class="badge badge-info">{{ s.class ? s.class.name : 'N/A' }}</span>
+                <span class="badge badge-info">{{ s.class ? s.class.name : uiStore.t('noClassAssigned') }}</span>
               </td>
               <td>{{ s.gender || 'N/A' }}</td>
               <td>
@@ -409,14 +445,14 @@ const bulkDelete = async () => {
                       class="btn btn-icon btn-sm"
                       :class="openDropdownId === s.id ? 'btn-icon-active' : ''"
                       @click="openDropdownId = openDropdownId === s.id ? null : s.id"
-                      title="More actions"
+                      :title="uiStore.t('moreActions')"
                     >⋮</button>
-                    <div v-if="openDropdownId === s.id" class="dropdown-menu-custom">
+                    <div v-if="openDropdownId === s.id" class="dropdown-menu-custom" :class="{ 'dropdown-menu-up': index >= paginatedStudents.length - 2 }">
                       <button
                         class="dropdown-item"
                         @click="viewStudentDetails(s.id); openDropdownId = null"
                       >
-                        <span>👁️</span> View Details
+                        <span>👁️</span> {{ uiStore.t('viewDetails') }}
                       </button>
                       <button
                         class="dropdown-item"
@@ -430,14 +466,14 @@ const bulkDelete = async () => {
                         class="dropdown-item"
                         @click="openEditModal(s); openDropdownId = null"
                       >
-                        <span>✏️</span> Edit
+                        <span>✏️</span> {{ uiStore.t('edit') }}
                       </button>
                       <div class="dropdown-divider"></div>
                       <button
                         class="dropdown-item dropdown-item-danger"
                         @click="deleteStudent(s.id); openDropdownId = null"
                       >
-                        <span>🗑️</span> Delete
+                        <span>🗑️</span> {{ uiStore.t('delete') }}
                       </button>
                     </div>
                   </div>
@@ -445,12 +481,57 @@ const bulkDelete = async () => {
               </td>
             </tr>
             <tr v-if="filteredStudents.length === 0">
-              <td :colspan="authStore.isAdmin ? 7 : 5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
-                No students match your query.
+              <td :colspan="authStore.isAdmin ? 8 : 6" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                {{ uiStore.t('noStudentsMatchSearch') }}
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div v-if="filteredStudents.length > 0" class="pagination-container">
+        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+          <div class="pagination-info">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, filteredStudents.length) }} of {{ filteredStudents.length }} students
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.35rem;">
+            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">{{ uiStore.t('show') }}:</span>
+            <select v-model="itemsPerPage" class="pagination-select">
+              <option :value="5">5</option>
+              <option :value="10">10</option>
+              <option :value="25">25</option>
+              <option :value="50">50</option>
+            </select>
+          </div>
+        </div>
+        <div v-if="totalPages > 1" class="pagination-controls">
+          <button
+            class="pagination-btn"
+            :disabled="currentPage === 1"
+            @click="currentPage--"
+            title="Previous Page"
+          >
+            ◀
+          </button>
+          <button
+            v-for="page in totalPages"
+            :key="page"
+            class="pagination-btn"
+            :class="{ active: currentPage === page }"
+            @click="currentPage = page"
+          >
+            {{ page }}
+          </button>
+          <button
+            class="pagination-btn"
+            :disabled="currentPage === totalPages"
+            @click="currentPage++"
+            title="Next Page"
+          >
+            ▶
+          </button>
+        </div>
       </div>
     </div>
 
@@ -458,7 +539,7 @@ const bulkDelete = async () => {
     <div v-if="showModal" class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="modal-title">{{ isEditing ? 'Edit Student' : 'Add Student' }}</h3>
+          <h3 class="modal-title">{{ isEditing ? uiStore.t('editStudent') : uiStore.t('createStudent') }}</h3>
           <button class="modal-close" @click="showModal = false">&times;</button>
         </div>
         <form @submit.prevent="saveStudent" enctype="multipart/form-data">
@@ -468,7 +549,12 @@ const bulkDelete = async () => {
           </div>
 
           <div class="form-group">
-            <label class="form-label">Assigned Class</label>
+            <label class="form-label">ឈ្មោះសិស្ស (Student Khmer Name)</label>
+            <input v-model="studentNameKh" type="text" class="form-control" placeholder="ឧ. ជន ដូច" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">{{ uiStore.t('classAssignment') }}</label>
             <select v-model="studentClassId" class="form-control form-select" required>
               <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
@@ -525,6 +611,9 @@ const bulkDelete = async () => {
               <h4 style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.25rem;">
                 {{ selectedStudentDetails.student.name }}
               </h4>
+              <h5 v-if="selectedStudentDetails.student.name_kh" class="kh-text" style="font-size: 1.1rem; font-weight: 700; color: var(--text-muted); margin-top: 0.15rem; margin-bottom: 0.5rem;">
+                {{ selectedStudentDetails.student.name_kh }}
+              </h5>
               <p style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">
                 Student ID: <strong>#{{ selectedStudentDetails.student.id }}</strong>
               </p>

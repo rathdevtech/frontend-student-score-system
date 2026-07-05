@@ -2,8 +2,10 @@
 import { ref, onMounted, watch } from 'vue';
 import api from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
+import { useUiStore } from '@/stores/ui';
 
 const authStore = useAuthStore();
+const uiStore = useUiStore();
 
 const classes = ref<any[]>([]);
 const availableSubjects = ref<any[]>([]);
@@ -133,6 +135,9 @@ const saveBulkScores = async () => {
       scores: scoresPayload
     });
     successMessage.value = 'Grades updated and calculated successfully!';
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 2000);
     await fetchScores(); // Reload
   } catch (err: any) {
     alert(err.response?.data?.message || 'Failed to save grades. Please verify score values are between 0 and 100.');
@@ -238,64 +243,80 @@ const handleScoresImport = (e: any) => {
 </script>
 
 <template>
-  <div>
-    <!-- Selector Bar -->
-    <div class="card" style="margin-bottom: 1.5rem;">
-      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-end;">
-        <div class="form-group" style="margin-bottom: 0; flex-grow: 1; min-width: 200px;">
-          <label class="form-label">Select Class</label>
-          <select v-model="selectedClassId" class="form-control form-select">
-            <option value="">-- Choose Class --</option>
-            <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
+  <div class="gradebook-container">
+    <!-- Combined Header + Selector Toolbar -->
+    <div class="card toolbar-card no-print">
+      <div class="toolbar-row">
+        <div class="toolbar-title-group">
+          <h2 class="page-title">{{ uiStore.t('gradebook') }}</h2>
         </div>
-
-        <div class="form-group" style="margin-bottom: 0; flex-grow: 1; min-width: 200px;">
-          <label class="form-label">Select Subject</label>
-          <select v-model="selectedSubjectId" class="form-control form-select" :disabled="!selectedClassId">
-            <option value="">-- Choose Subject --</option>
-            <option v-for="s in availableSubjects" :key="s.id" :value="s.id">{{ s.name }}</option>
-          </select>
+        <div class="toolbar-selectors">
+          <div class="select-input-container">
+            <span class="select-icon">🏫</span>
+            <select v-model="selectedClassId" class="form-control premium-select">
+              <option value="">{{ uiStore.t('selectClassPlaceholder') }}</option>
+              <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div class="select-input-container">
+            <span class="select-icon">📚</span>
+            <select v-model="selectedSubjectId" class="form-control premium-select" :disabled="!selectedClassId">
+              <option value="">{{ uiStore.t('selectSubjectPlaceholder') }}</option>
+              <option v-for="s in availableSubjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Alert Notifications -->
-    <div v-if="successMessage" class="badge badge-success" style="width: 100%; padding: 1rem; margin-bottom: 1.5rem; border-radius: 8px; font-size: 0.9rem;">
-      ✅ {{ successMessage }}
-    </div>
+    <transition name="fade">
+      <div v-if="successMessage" class="custom-alert alert-success">
+        <span class="alert-icon">✅</span>
+        <div class="alert-content">{{ successMessage }}</div>
+      </div>
+    </transition>
     
-    <div v-if="fetchError" class="badge badge-danger" style="width: 100%; padding: 1rem; margin-bottom: 1.5rem; border-radius: 8px; font-size: 0.9rem;">
-      ⚠️ {{ fetchError }}
-    </div>
+    <transition name="fade">
+      <div v-if="fetchError" class="custom-alert alert-danger">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-content">{{ fetchError }}</div>
+      </div>
+    </transition>
 
     <!-- Grade Book Grid -->
-    <div v-if="selectedClassId && selectedSubjectId" class="card" style="padding: 0; overflow: hidden;">
-      <div class="card-header" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 0; flex-wrap: wrap; gap: 1rem;">
-        <h3 class="card-title" style="margin-right: auto; margin-bottom: 0;">Gradebook Grid Sheet</h3>
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
+    <div v-if="selectedClassId && selectedSubjectId" class="card gradebook-card">
+      <div class="gradebook-header">
+        <div>
+          <h3 class="card-title" style="margin: 0;">{{ uiStore.t('gradebookSheetTitle') }}</h3>
+          <p class="card-subtitle" style="margin: 0.15rem 0 0 0;">{{ uiStore.t('gradebookIntro') }}</p>
+        </div>
+        <div class="header-actions no-print">
           <!-- Template Download Link -->
-          <button class="btn btn-secondary btn-sm" @click="downloadScoresTemplate" :disabled="studentScores.length === 0" title="Download CSV template with enrolled student list">
-            📄 Template
+          <button class="btn btn-secondary btn-header" @click="downloadScoresTemplate" :disabled="studentScores.length === 0" :title="uiStore.t('downloadTemplate')">
+            📄 {{ uiStore.t('template') }}
           </button>
           <!-- Import Button -->
-          <button class="btn btn-secondary btn-sm" @click="triggerScoresImport" :disabled="studentScores.length === 0" title="Import grades from CSV file">
-            📥 Import
+          <button class="btn btn-secondary btn-header" @click="triggerScoresImport" :disabled="studentScores.length === 0" :title="uiStore.t('importData')">
+            📥 {{ uiStore.t('importData') }}
           </button>
           <input type="file" id="scoresCsvFileInput" accept=".csv" @change="handleScoresImport" style="display: none;" />
 
-          <button class="btn btn-primary btn-sm" @click="saveBulkScores" :disabled="saving || studentScores.length === 0">
-            {{ saving ? 'Saving scores...' : '💾 Save Grades' }}
+          <button class="btn btn-primary btn-header" @click="saveBulkScores" :disabled="saving || studentScores.length === 0">
+            {{ saving ? uiStore.t('saving') : '💾 ' + uiStore.t('saveGrades') }}
           </button>
         </div>
       </div>
 
-      <div v-if="loading" style="text-align: center; padding: 3rem; font-weight: 600;">
-        Fetching class gradebook sheet...
+      <div v-if="loading" class="loading-state" style="padding: 4rem 2rem;">
+        <div class="spinner"></div>
+        <p style="margin-top: 1rem;">{{ uiStore.t('fetchingGradebook') }}</p>
       </div>
       
-      <div v-else-if="studentScores.length === 0" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-        No students registered in this class. Add students under the Students tab.
+      <div v-else-if="studentScores.length === 0" style="text-align: center; padding: 4rem 2rem; color: var(--text-muted);">
+        <span style="font-size: 2.5rem; display: block; margin-bottom: 1rem;">👨‍🎓</span>
+        <p style="font-weight: 600; font-size: 0.95rem; margin: 0;">{{ uiStore.t('noStudentsInClass') }}</p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">{{ uiStore.t('addStudentsHint') }}</p>
       </div>
 
       <div v-else class="table-container" style="border: none; border-radius: 0;">
@@ -303,12 +324,13 @@ const handleScoresImport = (e: any) => {
           <thead>
             <tr>
               <th>Student Name</th>
+              <th>{{ uiStore.t('colNameKh') }}</th>
               <th>Gender</th>
-              <th v-for="comp in subjectComponents" :key="comp.key" style="text-align: center; width: 110px;">
+              <th v-for="comp in subjectComponents" :key="comp.key" style="text-align: center; width: 120px;">
                 {{ comp.label }} ({{ comp.weight }}%)
               </th>
-              <th style="text-align: center; width: 110px;">Total (100%)</th>
-              <th style="text-align: center; width: 110px;">Grade</th>
+              <th style="text-align: center; width: 120px;">{{ uiStore.t('totalScoreLabel') }}</th>
+              <th style="text-align: center; width: 120px;">{{ uiStore.t('colGrade') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -317,7 +339,8 @@ const handleScoresImport = (e: any) => {
               :key="row.student_id"
               :class="row.total >= 50 ? 'passing-row' : 'failing-row'"
             >
-              <td style="font-weight: 600;">{{ row.student_name }}</td>
+              <td style="font-weight: 700; color: var(--text-main);">{{ row.student_name }}</td>
+              <td class="kh-text" style="color: var(--text-muted);">{{ row.student_name_kh || '—' }}</td>
               <td>{{ row.gender || 'N/A' }}</td>
               <td v-for="comp in subjectComponents" :key="comp.key" style="text-align: center;">
                 <input
@@ -327,13 +350,14 @@ const handleScoresImport = (e: any) => {
                   max="100"
                   step="any"
                   @input="calculateRow(row)"
+                  class="score-input"
                 />
               </td>
-              <td class="total-column" style="text-align: center; font-size: 1rem;">
-                {{ row.total }}
+              <td class="total-column" style="text-align: center;">
+                {{ row.total }}%
               </td>
-              <td class="grade-column" style="text-align: center; font-size: 1.1rem;">
-                <span class="badge" :class="row.total >= 50 ? 'badge-success' : 'badge-danger'">
+              <td class="grade-column" style="text-align: center;">
+                <span class="badge" :class="row.total >= 50 ? 'badge-success' : 'badge-danger'" style="font-size: 0.85rem; padding: 0.3rem 0.65rem;">
                   {{ row.grade }}
                 </span>
               </td>
@@ -343,9 +367,249 @@ const handleScoresImport = (e: any) => {
       </div>
     </div>
     
-    <div v-else class="card" style="text-align: center; padding: 4rem; color: var(--text-muted);">
-      <span>🏫</span>
-      <p style="margin-top: 1rem; font-weight: 600;">Select a class and a subject from the selector above to open the grading sheet.</p>
+    <div v-else class="card empty-gradebook-state no-print">
+      <div class="empty-state-icon">🏫</div>
+      <h3>{{ uiStore.t('gradebookEmptyTitle') }}</h3>
+      <p>{{ uiStore.t('gradebookEmptyText') }}</p>
     </div>
   </div>
 </template>
+
+<style scoped>
+.gradebook-container {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Toolbar Card (merged header + selectors) */
+.toolbar-card {
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-md);
+}
+
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.toolbar-title-group {
+  flex-shrink: 0;
+}
+
+.page-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+  font-family: var(--font-family);
+  white-space: nowrap;
+}
+
+.toolbar-selectors {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.toolbar-selectors .select-input-container {
+  flex: 1;
+  min-width: 160px;
+}
+
+.select-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.select-icon {
+  position: absolute;
+  left: 0.75rem;
+  font-size: 1rem;
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+.premium-select {
+  padding-left: 2.25rem !important;
+  height: 38px;
+}
+
+/* Gradebook Card Sheet */
+.gradebook-card {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+}
+
+.gradebook-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.card-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0.25rem 0 0 0;
+  font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-header {
+  height: 36px;
+  padding: 0 1rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Input Fields inside Table */
+.score-input {
+  width: 76px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: #f8fafc;
+  color: var(--text-main);
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.score-input:focus {
+  border-color: var(--primary-color);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+/* Table Row Highlights */
+.passing-row:hover {
+  background-color: #f0fdf4 !important;
+}
+
+.failing-row:hover {
+  background-color: #fef2f2 !important;
+}
+
+.total-column {
+  font-weight: 800;
+  color: var(--primary-color);
+  font-size: 1.05rem;
+}
+
+.grade-column {
+  vertical-align: middle;
+}
+
+/* Alert Boxes */
+.custom-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.4;
+  border: 1px solid transparent;
+}
+
+.alert-success {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.alert-danger {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.alert-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* Empty State */
+.empty-gradebook-state {
+  text-align: center;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.empty-gradebook-state h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 0.35rem 0;
+}
+
+.empty-gradebook-state p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+/* Spinner */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--primary-light);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+</style>

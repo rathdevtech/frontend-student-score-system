@@ -1,8 +1,9 @@
 /* Passerelles Numériques Cambodia - Simple & Professional UX Theme */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+Khmer:wght@300;400;500;600;700&family=Battambang:wght@400;700&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
 
 :root {
   --font-family: 'Plus Jakarta Sans', sans-serif;
+  --font-family-km: 'Noto Sans Khmer', 'Battambang', 'Kantumruy Pro', Arial, sans-serif;
   
   /* Passerelles Numériques Brand Palette */
   --primary-color: #0284c7; /* PN Cyan/Blue */
@@ -40,6 +41,78 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
+}
+
+/* ─── Dark Mode Overrides ─── */
+html.dark {
+  --bg-color: #0f172a;
+  --card-bg: #1e293b;
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --sidebar-bg: #1e293b;
+  --sidebar-text: #cbd5e1;
+  --sidebar-border: #334155;
+  --primary-light: rgba(56, 189, 248, 0.12);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── Khmer Language Font Overrides ─── */
+html[lang="km"] {
+  --font-family: 'Noto Sans Khmer', 'Battambang', 'Kantumruy Pro', Arial, sans-serif;
+}
+
+html[lang="km"] body {
+  font-family: var(--font-family);
+  line-height: 1.8; /* Khmer glyphs stack vertically — needs more line height */
+  word-break: break-word;
+}
+
+/* All text elements use the Khmer font when lang="km" */
+html[lang="km"] *,
+html[lang="km"] button,
+html[lang="km"] input,
+html[lang="km"] select,
+html[lang="km"] textarea {
+  font-family: 'Noto Sans Khmer', 'Battambang', 'Kantumruy Pro', Arial, sans-serif;
+}
+
+/* Boost readability at small sizes for Khmer script */
+html[lang="km"] .menu-link         { font-size: 0.93rem; line-height: 1.8; }
+html[lang="km"] .user-name         { font-size: 0.85rem; }
+html[lang="km"] .user-role         { font-size: 0.75rem; }
+html[lang="km"] .btn               { font-size: 0.88rem; line-height: 1.7; }
+html[lang="km"] .form-label        { font-size: 0.82rem; line-height: 1.7; }
+html[lang="km"] .form-control      { font-size: 0.93rem; line-height: 1.7; }
+html[lang="km"] .table th          { font-size: 0.8rem;  line-height: 1.7; }
+html[lang="km"] .table td          { font-size: 0.88rem; line-height: 1.8; }
+html[lang="km"] .badge             { font-size: 0.75rem; line-height: 1.5; padding: 0.22rem 0.6rem; }
+html[lang="km"] .card-title        { font-size: 1.05rem; line-height: 1.7; }
+html[lang="km"] .modal-title       { font-size: 1.1rem;  line-height: 1.7; }
+html[lang="km"] .page-title-section h1 { font-size: 1.3rem; line-height: 1.6; }
+html[lang="km"] .metric-title      { font-size: 0.78rem; line-height: 1.6; }
+html[lang="km"] .pagination-btn    { font-size: 0.85rem; line-height: 1.6; }
+html[lang="km"] .dropdown-item     { font-size: 0.9rem;  line-height: 1.7; }
+
+/* ─── .kh-text utility ─── */
+/* Apply this class to ANY element containing Khmer text regardless of UI language */
+/* e.g., <td class="kh-text">អន សារ៉ាត់</td> */
+.kh-text {
+  font-family: 'Noto Sans Khmer', 'Battambang', 'Kantumruy Pro', Arial, sans-serif !important;
+  line-height: 1.8;
+  font-size: 0.88rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Slightly larger Khmer text inside table cells for clarity */
+.table td .kh-text,
+.kh-text.table-cell {
+  font-size: 0.9rem;
+  color: var(--text-main);
 }
 
 * {
@@ -184,7 +257,7 @@ a:hover {
 
 /* Top Navbar with Location Info (School Header Style) */
 .top-navbar {
-  background-color: #ffffff;
+  background-color: var(--card-bg);
   border-bottom: 1px solid var(--border-color);
   padding: 0.75rem 1.5rem;
   display: flex;
@@ -598,8 +671,19 @@ a:hover {
   animation: dropFadeIn 0.15s ease;
 }
 
+.dropdown-menu-custom.dropdown-menu-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+  animation: dropFadeInUp 0.15s ease;
+}
+
 @keyframes dropFadeIn {
   from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dropFadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -893,4 +977,163 @@ a:hover {
     overflow: visible !important;
     border: none !important;
   }
+}
+
+/* Pagination Styling */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--card-bg);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.pagination-info {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background-color: var(--primary-light);
+}
+
+.pagination-btn.active {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border-color: var(--primary-color);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-select {
+  height: 32px;
+  padding: 0 1.5rem 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: #ffffff;
+  color: var(--text-main);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%234a5568' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 0.75em;
+}
+
+.pagination-select:focus {
+  border-color: var(--primary-color);
+}
+
+.profile-nav-link:hover {
+  opacity: 0.75;
+}
+
+/* Dark mode: table & form controls */
+html.dark .table {
+  background-color: var(--card-bg);
+}
+html.dark .table th {
+  background-color: #162032;
+  color: var(--text-muted);
+  border-bottom-color: var(--border-color);
+}
+html.dark .table td {
+  color: var(--text-main);
+  border-bottom-color: var(--border-color);
+}
+html.dark .table tr:hover td {
+  background-color: #243347;
+}
+html.dark .table-container {
+  border-color: var(--border-color);
+}
+html.dark .table-container .table thead th {
+  background-color: #162032;
+}
+html.dark .form-control,
+html.dark .form-select,
+html.dark .pagination-select {
+  background-color: #1e293b;
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+html.dark .pagination-btn {
+  background-color: #1e293b;
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+html.dark .pagination-btn:hover:not(:disabled) {
+  background-color: var(--primary-light);
+}
+html.dark .modal-content {
+  background-color: #1e293b;
+  border-color: var(--border-color);
+}
+html.dark .modal-header,
+html.dark .modal-footer,
+html.dark .card-header {
+  border-color: var(--border-color);
+}
+html.dark .dropdown-menu-custom {
+  background-color: #1e293b;
+  border-color: var(--border-color);
+}
+html.dark .dropdown-item {
+  color: var(--text-main);
+}
+html.dark .dropdown-item:hover {
+  background-color: #243347;
+}
+html.dark .btn-secondary {
+  background-color: #1e293b;
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+html.dark .btn-secondary:hover {
+  background-color: #243347;
+}
+html.dark .school-footer {
+  background-color: var(--card-bg);
+  border-top-color: var(--border-color);
+}
+html.dark .pagination-container {
+  background-color: var(--card-bg);
+  border-top-color: var(--border-color);
 }

@@ -447,7 +447,7 @@ const bulkDelete = async () => {
                       @click="openDropdownId = openDropdownId === s.id ? null : s.id"
                       :title="uiStore.t('moreActions')"
                     >⋮</button>
-                    <div v-if="openDropdownId === s.id" class="dropdown-menu-custom" :class="{ 'dropdown-menu-up': index >= paginatedStudents.length - 2 }">
+                    <div v-if="openDropdownId === s.id" class="dropdown-menu-custom" :class="{ 'dropdown-menu-up': index >= paginatedStudents.length - 2 && index >= 2 }">
                       <button
                         class="dropdown-item"
                         @click="viewStudentDetails(s.id); openDropdownId = null"

@@ -453,7 +453,7 @@ const saveSubjects = async () => {
                       @click="openDropdownId = openDropdownId === c.id ? null : c.id"
                       :title="uiStore.t('moreActions')"
                     >⋮</button>
-                    <div v-if="openDropdownId === c.id" class="dropdown-menu-custom" :class="{ 'dropdown-menu-up': index >= paginatedClasses.length - 2 }">
+                    <div v-if="openDropdownId === c.id" class="dropdown-menu-custom" :class="{ 'dropdown-menu-up': index >= paginatedClasses.length - 2 && index >= 2 }">
                       <button
                         class="dropdown-item"
                         :class="c.is_active !== false ? 'dropdown-item-success' : 'dropdown-item-muted'"

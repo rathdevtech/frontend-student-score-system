@@ -319,18 +319,21 @@ const handleScoresImport = (e: any) => {
         <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">{{ uiStore.t('addStudentsHint') }}</p>
       </div>
 
-      <div v-else class="table-container" style="border: none; border-radius: 0;">
+      <div v-else class="table-container">
         <table class="table score-table">
           <thead>
             <tr>
-              <th>Student Name</th>
-              <th>{{ uiStore.t('colNameKh') }}</th>
-              <th>Gender</th>
-              <th v-for="comp in subjectComponents" :key="comp.key" style="text-align: center; width: 120px;">
-                {{ comp.label }} ({{ comp.weight }}%)
+              <th style="min-width: 150px; text-align: left;">Student Name</th>
+              <th style="min-width: 150px; text-align: left;">{{ uiStore.t('colNameKh') }}</th>
+              <th style="width: 70px; text-align: left;">Gender</th>
+              <th v-for="comp in subjectComponents" :key="comp.key" style="text-align: center; width: 90px;">
+                {{ comp.label }}
+                <div style="font-size: 0.7rem; opacity: 0.8; font-weight: 500; text-transform: none; margin-top: 0.1rem;">
+                  ({{ comp.weight }}%)
+                </div>
               </th>
-              <th style="text-align: center; width: 120px;">{{ uiStore.t('totalScoreLabel') }}</th>
-              <th style="text-align: center; width: 120px;">{{ uiStore.t('colGrade') }}</th>
+              <th style="text-align: center; width: 90px;">{{ uiStore.t('totalScoreLabel') }}</th>
+              <th style="text-align: center; width: 80px;">{{ uiStore.t('colGrade') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -339,7 +342,7 @@ const handleScoresImport = (e: any) => {
               :key="row.student_id"
               :class="row.total >= 50 ? 'passing-row' : 'failing-row'"
             >
-              <td style="font-weight: 700; color: var(--text-main);">{{ row.student_name }}</td>
+              <td style="font-weight: 600; color: var(--text-main);">{{ row.student_name }}</td>
               <td class="kh-text" style="color: var(--text-muted);">{{ row.student_name_kh || '—' }}</td>
               <td>{{ row.gender || 'N/A' }}</td>
               <td v-for="comp in subjectComponents" :key="comp.key" style="text-align: center;">
@@ -353,7 +356,7 @@ const handleScoresImport = (e: any) => {
                   class="score-input"
                 />
               </td>
-              <td class="total-column" style="text-align: center;">
+              <td class="total-column" :class="row.total < 50 ? 'fail-total' : ''" style="text-align: center;">
                 {{ row.total }}%
               </td>
               <td class="grade-column" style="text-align: center;">
@@ -377,7 +380,7 @@ const handleScoresImport = (e: any) => {
 
 <style scoped>
 .gradebook-container {
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -484,38 +487,65 @@ const handleScoresImport = (e: any) => {
 }
 
 /* Input Fields inside Table */
-.score-input {
-  width: 76px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
-  background-color: #f8fafc;
-  color: var(--text-main);
-  font-weight: 700;
-  text-align: center;
-  outline: none;
-  transition: all 0.15s ease;
+.score-table .score-input {
+  width: 68px !important;
+  height: 34px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border-color) !important;
+  background-color: #f8fafc !important;
+  color: var(--text-main) !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  outline: none !important;
+  font-size: 0.9rem !important;
+  padding: 0 !important;
+  transition: all 0.15s ease !important;
 }
 
-.score-input:focus {
-  border-color: var(--primary-color);
-  background-color: #ffffff;
-  box-shadow: 0 0 0 2px var(--primary-light);
+.score-table .score-input:hover {
+  border-color: #cbd5e1 !important;
+  background-color: #f1f5f9 !important;
+}
+
+.score-table .score-input:focus {
+  border-color: var(--primary-color) !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 2px var(--primary-light) !important;
+}
+
+/* Hide number inputs spinner/arrows */
+.score-table input[type="number"]::-webkit-outer-spin-button,
+.score-table input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.score-table input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.score-table th,
+.score-table td {
+  vertical-align: middle !important;
+  padding: 0.75rem 1rem !important;
 }
 
 /* Table Row Highlights */
-.passing-row:hover {
+.passing-row:hover td {
   background-color: #f0fdf4 !important;
 }
 
-.failing-row:hover {
+.failing-row:hover td {
   background-color: #fef2f2 !important;
 }
 
 .total-column {
   font-weight: 800;
   color: var(--primary-color);
-  font-size: 1.05rem;
+  font-size: 1rem;
+}
+
+.total-column.fail-total {
+  color: var(--danger-color);
 }
 
 .grade-column {

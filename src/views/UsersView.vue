@@ -425,7 +425,7 @@ const deleteUser = async (id: number) => {
                       @click="openDropdownId = openDropdownId === u.id ? null : u.id"
                       :title="uiStore.t('moreActions')"
                     >⋮</button>
-                    <div v-if="openDropdownId === u.id" class="dropdown-menu-custom" :class="{ 'dropdown-menu-up': index >= paginatedUsers.length - 2 }">
+                    <div v-if="openDropdownId === u.id" class="dropdown-menu-custom" :class="{ 'dropdown-menu-up': index >= paginatedUsers.length - 2 && index >= 2 }">
                       <button class="dropdown-item" @click="viewUserDetails(u); openDropdownId = null">
                         <span>👁️</span> {{ uiStore.t('viewProfile') }}
                       </button>

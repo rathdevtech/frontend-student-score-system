@@ -198,38 +198,38 @@ const handlePrint = () => {
             <table class="table roster-table">
               <thead>
                 <tr>
-                  <th style="width: 100px; text-align: center;">{{ uiStore.t('rankHeader') }}</th>
-                  <th>{{ uiStore.t('studentNameHeader') }}</th>
-                  <th>{{ uiStore.t('studentNameKhHeader') || 'Khmer Name' }}</th>
-                  <th>{{ uiStore.t('genderHeader') }}</th>
-                  <th style="text-align: center;">{{ uiStore.t('subjectsGradedHeader') }}</th>
-                  <th style="text-align: center;">{{ uiStore.t('averageScoreHeader') }}</th>
-                  <th style="text-align: center;">{{ uiStore.t('overallGradeHeader') }}</th>
-                  <th style="text-align: center;">{{ uiStore.t('statusHeader') }}</th>
+                  <th style="width: 80px; text-align: center;">{{ uiStore.t('rankHeader') }}</th>
+                  <th style="min-width: 150px; text-align: left;">{{ uiStore.t('studentNameHeader') }}</th>
+                  <th style="min-width: 150px; text-align: left;">{{ uiStore.t('studentNameKhHeader') || 'Khmer Name' }}</th>
+                  <th style="width: 70px; text-align: left;">{{ uiStore.t('genderHeader') }}</th>
+                  <th style="text-align: center; width: 130px;">{{ uiStore.t('subjectsGradedHeader') }}</th>
+                  <th style="text-align: center; width: 120px;">{{ uiStore.t('averageScoreHeader') }}</th>
+                  <th style="text-align: center; width: 120px;">{{ uiStore.t('overallGradeHeader') }}</th>
+                  <th style="text-align: center; width: 100px;">{{ uiStore.t('statusHeader') }}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="row in classReportData.rankings" :key="row.student_id" class="ranking-row">
-                  <td style="text-align: center;">
+                  <td style="text-align: center; vertical-align: middle;">
                     <span v-if="row.rank === 1" class="rank-badge rank-1" title="1st Place">🥇 1st</span>
                     <span v-else-if="row.rank === 2" class="rank-badge rank-2" title="2nd Place">🥈 2nd</span>
                     <span v-else-if="row.rank === 3" class="rank-badge rank-3" title="3rd Place">🥉 3rd</span>
                     <span v-else class="rank-badge rank-general">#{{ row.rank }}</span>
                   </td>
-                  <td style="font-weight: 700; color: var(--text-main);">{{ row.student_name }}</td>
-                  <td class="kh-text" style="color: var(--text-muted);">{{ row.student_name_kh || '—' }}</td>
-                  <td>{{ row.gender || 'N/A' }}</td>
-                  <td style="text-align: center;">{{ row.subjects_graded }}</td>
-                  <td style="text-align: center; font-weight: 800; color: var(--primary-color);">
+                  <td style="font-weight: 600; color: var(--text-main); vertical-align: middle;">{{ row.student_name }}</td>
+                  <td class="kh-text" style="color: var(--text-muted); vertical-align: middle;">{{ row.student_name_kh || '—' }}</td>
+                  <td style="vertical-align: middle;">{{ row.gender || 'N/A' }}</td>
+                  <td style="text-align: center; vertical-align: middle;">{{ row.subjects_graded }}</td>
+                  <td style="text-align: center; font-weight: 800; color: var(--primary-color); vertical-align: middle;">
                     {{ row.average_score }}%
                   </td>
-                  <td style="text-align: center;">
-                    <span class="badge" :class="row.average_score >= 50 ? 'badge-success' : 'badge-danger'">
+                  <td style="text-align: center; vertical-align: middle;">
+                    <span class="badge" :class="row.average_score >= 50 ? 'badge-success' : 'badge-danger'" style="font-size: 0.85rem; padding: 0.3rem 0.65rem;">
                       {{ row.overall_grade }}
                     </span>
                   </td>
-                  <td style="text-align: center;">
-                    <span class="badge status-pill" :class="row.status === 'Pass' ? 'badge-success' : 'badge-danger'">
+                  <td style="text-align: center; vertical-align: middle;">
+                    <span class="badge status-pill" :class="row.status === 'Pass' ? 'badge-success' : 'badge-danger'" style="font-size: 0.85rem; padding: 0.3rem 0.65rem;">
                       {{ row.status }}
                     </span>
                   </td>
@@ -422,7 +422,7 @@ const handlePrint = () => {
 
 <style scoped>
 .reports-container {
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -707,6 +707,12 @@ const handlePrint = () => {
   padding: 0.25rem 0.6rem;
   border-radius: 12px;
   font-weight: 700;
+}
+
+.roster-table th,
+.roster-table td {
+  vertical-align: middle !important;
+  padding: 0.75rem 1rem !important;
 }
 
 /* Empty State */

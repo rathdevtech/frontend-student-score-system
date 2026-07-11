@@ -7,8 +7,10 @@ export interface User {
   name: string;
   name_kh?: string | null;
   email: string;
-  role: 'admin' | 'teacher';
+  role: string;
+  student_id: number | null;
   avatar: string | null;
+  permissions: string[];
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +30,11 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!token.value && !!user.value);
   const isAdmin = computed(() => user.value?.role === 'admin');
   const isTeacher = computed(() => user.value?.role === 'teacher');
+  const isStudent = computed(() => user.value?.role === 'student');
+
+  const hasPermission = (permission: string) => {
+    return user.value?.permissions?.includes(permission) || false;
+  };
 
   const login = async (credentials: any) => {
     loading.value = true;
@@ -121,6 +128,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     isTeacher,
+    isStudent,
+    hasPermission,
     login,
     register,
     logout,

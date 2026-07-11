@@ -323,9 +323,9 @@ const handleScoresImport = (e: any) => {
         <table class="table score-table">
           <thead>
             <tr>
-              <th style="min-width: 150px; text-align: left;">Student Name</th>
+              <th style="min-width: 150px; text-align: left;">{{ uiStore.t('studentName') }}</th>
               <th style="min-width: 150px; text-align: left;">{{ uiStore.t('colNameKh') }}</th>
-              <th style="width: 70px; text-align: left;">Gender</th>
+              <th style="width: 70px; text-align: left;">{{ uiStore.t('gender') }}</th>
               <th v-for="comp in subjectComponents" :key="comp.key" style="text-align: center; width: 90px;">
                 {{ comp.label }}
                 <div style="font-size: 0.7rem; opacity: 0.8; font-weight: 500; text-transform: none; margin-top: 0.1rem;">

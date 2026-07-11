@@ -2,9 +2,11 @@
 import { ref, onMounted, watch } from 'vue';
 import api from '@/services/api';
 import { useUiStore } from '@/stores/ui';
+import { useAuthStore } from '@/stores/auth';
 
 const uiStore = useUiStore();
-const activeTab = ref('class'); // 'class' or 'student'
+const authStore = useAuthStore();
+const activeTab = ref(authStore.isStudent ? 'student' : 'class'); // 'class' or 'student'
 
 const classes = ref<any[]>([]);
 const selectedClassId = ref('');
@@ -34,7 +36,11 @@ const getPhotoUrl = (path: string | null) => {
 };
 
 onMounted(() => {
-  loadClasses();
+  if (authStore.isStudent) {
+    selectedStudentId.value = String(authStore.user?.student_id || '');
+  } else {
+    loadClasses();
+  }
 });
 
 // Class report watcher
@@ -99,7 +105,7 @@ const handlePrint = () => {
       <!-- Row 1: Title + Tabs -->
       <div class="toolbar-top-row">
         <h2 class="page-title">{{ uiStore.t('reports') }}</h2>
-        <div class="tabs-pills">
+        <div v-if="!authStore.isStudent" class="tabs-pills">
           <button class="tab-pill" :class="{ active: activeTab === 'class' }" @click="activeTab = 'class'">
             <span class="pill-icon">🏫</span> {{ uiStore.t('classRankingsTab') }}
           </button>
@@ -109,7 +115,7 @@ const handlePrint = () => {
         </div>
       </div>
       <!-- Row 2: Selectors -->
-      <div class="toolbar-bottom-row">
+      <div v-if="!authStore.isStudent" class="toolbar-bottom-row">
         <div v-if="activeTab === 'class'" class="toolbar-selectors">
           <div class="select-input-container">
             <span class="select-icon">🏫</span>

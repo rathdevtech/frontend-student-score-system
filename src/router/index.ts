@@ -20,31 +20,43 @@ const router = createRouter({
       path: '/classes',
       name: 'classes',
       component: () => import('@/views/ClassesView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresPermission: 'view_classes' }
     },
     {
       path: '/users',
       name: 'users',
       component: () => import('@/views/UsersView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true }
+      meta: { requiresAuth: true, requiresPermission: 'view_users' }
+    },
+    {
+      path: '/teachers',
+      name: 'teachers',
+      component: () => import('@/views/TeachersView.vue'),
+      meta: { requiresAuth: true, requiresPermission: 'view_users' }
+    },
+    {
+      path: '/roles',
+      name: 'roles',
+      component: () => import('@/views/RolesView.vue'),
+      meta: { requiresAuth: true, requiresPermission: 'manage_roles_permissions' }
     },
     {
       path: '/subjects',
       name: 'subjects',
       component: () => import('@/views/SubjectsView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresPermission: 'view_subjects' }
     },
     {
       path: '/students',
       name: 'students',
       component: () => import('@/views/StudentsView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresPermission: 'view_students' }
     },
     {
       path: '/scores',
       name: 'scores',
       component: () => import('@/views/ScoresView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, requiresPermission: 'view_scores' }
     },
     {
       path: '/reports',
@@ -74,7 +86,7 @@ router.beforeEach((to, from, next) => {
     next({ name: 'login' });
   } else if (to.meta.guestOnly && authStore.isAuthenticated) {
     next({ name: 'dashboard' });
-  } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
+  } else if (to.meta.requiresPermission && !authStore.hasPermission(to.meta.requiresPermission as string)) {
     next({ name: 'dashboard' });
   } else {
     next();

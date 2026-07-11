@@ -50,25 +50,98 @@ const handleLogout = () => {
 
       <nav class="menu-section">
         <RouterLink to="/" class="menu-link">
-          <span>📊</span> {{ uiStore.t('dashboard') }}
+          <span>
+            <svg viewBox="0 0 24 24">
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+          </span>
+          {{ uiStore.t('dashboard') }}
         </RouterLink>
-        <RouterLink v-if="authStore.isAdmin" to="/users" class="menu-link">
-          <span>👥</span> {{ uiStore.t('users') }}
+        <RouterLink v-if="authStore.hasPermission('view_classes')" to="/classes" class="menu-link">
+          <span>
+            <svg viewBox="0 0 24 24">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+              <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+            </svg>
+          </span>
+          {{ uiStore.t('classes') }}
         </RouterLink>
-        <RouterLink to="/classes" class="menu-link">
-          <span>🏫</span> {{ uiStore.t('classes') }}
+        <RouterLink v-if="authStore.hasPermission('view_subjects')" to="/subjects" class="menu-link">
+          <span>
+            <svg viewBox="0 0 24 24">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+          </span>
+          {{ uiStore.t('subjects') }}
         </RouterLink>
-        <RouterLink to="/subjects" class="menu-link">
-          <span>📚</span> {{ uiStore.t('subjects') }}
+        <RouterLink v-if="authStore.hasPermission('view_students')" to="/students" class="menu-link">
+          <span>
+            <svg viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </span>
+          {{ uiStore.t('students') }}
         </RouterLink>
-        <RouterLink to="/students" class="menu-link">
-          <span>👨‍🎓</span> {{ uiStore.t('students') }}
+        <RouterLink v-if="authStore.hasPermission('view_users')" to="/teachers" class="menu-link">
+          <span>
+            <svg viewBox="0 0 24 24">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 9l-3.5-2L16 9l3.5 2z" />
+              <path d="M19.5 11v3" />
+            </svg>
+          </span>
+          {{ uiStore.t('teachers') }}
         </RouterLink>
-        <RouterLink to="/scores" class="menu-link">
-          <span>📝</span> {{ uiStore.t('gradebook') }}
+        <RouterLink v-if="authStore.hasPermission('view_scores')" to="/scores" class="menu-link">
+          <span>
+            <svg viewBox="0 0 24 24">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z" />
+            </svg>
+          </span>
+          {{ uiStore.t('gradebook') }}
         </RouterLink>
         <RouterLink to="/reports" class="menu-link">
-          <span>📄</span> {{ uiStore.t('reports') }}
+          <span>
+            <svg viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </span>
+          {{ uiStore.t('reports') }}
+        </RouterLink>
+
+        <!-- Settings Section Header -->
+        <div v-if="authStore.hasPermission('view_users') || authStore.hasPermission('manage_roles_permissions')" class="menu-group-header">
+          {{ uiStore.t('settings') }}
+        </div>
+
+        <RouterLink v-if="authStore.hasPermission('view_users')" to="/users" class="menu-link">
+          <span>
+            <svg viewBox="0 0 24 24">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </span>
+          {{ uiStore.t('users') }}
+        </RouterLink>
+        <RouterLink v-if="authStore.hasPermission('manage_roles_permissions')" to="/roles" class="menu-link">
+          <span>
+            <svg viewBox="0 0 24 24">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+            </svg>
+          </span>
+          {{ uiStore.t('rolesAndPermissions') || 'Roles & Permissions' }}
         </RouterLink>
       </nav>
     </aside>
@@ -199,39 +272,39 @@ const handleLogout = () => {
 .top-navbar {
   background-color: var(--card-bg);
   border-bottom: 1px solid var(--sidebar-border);
-  padding: 0 1.75rem;
-  height: 60px;
+  padding: 0 1.5rem;
+  height: 56px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 /* ── Brand (Left) ── */
 .navbar-left {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.55rem;
   min-width: 0;
 }
 .navbar-brand-icon {
   background-color: var(--primary-light);
   color: var(--primary-color);
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.95rem;
   flex-shrink: 0;
 }
 .navbar-brand-title {
-  font-size: 1.05rem;
-  font-weight: 800;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--text-main);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -241,14 +314,14 @@ const handleLogout = () => {
 .navbar-right {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   flex-shrink: 0;
 }
 
 /* ── Vertical Divider ── */
 .navbar-divider {
   width: 1px;
-  height: 28px;
+  height: 24px;
   background-color: var(--border-color);
   border-radius: 1px;
   margin: 0 0.15rem;
@@ -263,20 +336,20 @@ const handleLogout = () => {
 .lang-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 0.34rem 0.7rem 0.34rem 0.5rem;
-  border-radius: 10px;
-  border: 1.5px solid var(--border-color);
+  gap: 5px;
+  padding: 0.3rem 0.65rem 0.3rem 0.5rem;
+  border-radius: 7px;
+  border: 1px solid var(--border-color);
   background-color: var(--bg-color);
   color: var(--text-main);
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   font-family: var(--font-family);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
   user-select: none;
-  height: 36px;
+  height: 32px;
 }
 .lang-trigger:hover,
 .lang-dropdown--open .lang-trigger {
@@ -285,22 +358,22 @@ const handleLogout = () => {
   color: var(--primary-color);
 }
 .lang-flag-img {
-  width: 22px;
-  height: 15px;
+  width: 20px;
+  height: 13px;
   object-fit: cover;
-  border-radius: 3px;
+  border-radius: 2px;
   border: 1px solid rgba(0,0,0,0.12);
   flex-shrink: 0;
   display: block;
 }
 .lang-code {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   letter-spacing: 0.02em;
 }
 .lang-chevron {
   color: var(--text-muted);
-  transition: transform 0.2s ease;
+  transition: transform 0.18s ease;
   flex-shrink: 0;
 }
 .lang-dropdown--open .lang-chevron {
@@ -311,41 +384,36 @@ const handleLogout = () => {
 /* Dropdown Panel */
 .lang-panel {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 6px);
   right: 0;
   z-index: 1000;
-  min-width: 160px;
+  min-width: 145px;
   background-color: var(--card-bg);
-  border: 1.5px solid var(--border-color);
-  border-radius: 12px;
-  padding: 5px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
 .lang-option {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0.55rem 0.65rem;
-  border-radius: 8px;
+  gap: 8px;
+  padding: 0.45rem 0.55rem;
+  border-radius: 7px;
   cursor: pointer;
-  transition: background 0.14s ease;
+  transition: background 0.12s ease;
 }
-.lang-option:hover {
-  background-color: var(--primary-light);
-}
-.lang-option--active {
-  background-color: var(--primary-light);
-}
+.lang-option:hover { background-color: var(--primary-light); }
+.lang-option--active { background-color: var(--primary-light); }
 .lang-option__flag-img {
-  width: 26px;
-  height: 17px;
+  width: 22px;
+  height: 14px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 3px;
   border: 1px solid rgba(0,0,0,0.12);
   flex-shrink: 0;
   display: block;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 .lang-option__info {
   display: flex;
@@ -355,23 +423,17 @@ const handleLogout = () => {
   min-width: 0;
 }
 .lang-option__name {
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--text-main);
 }
 .lang-option__sub {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 500;
   color: var(--text-muted);
-  letter-spacing: 0.02em;
 }
-.lang-option--active .lang-option__name {
-  color: var(--primary-color);
-}
-.lang-option__check {
-  color: var(--primary-color);
-  flex-shrink: 0;
-}
+.lang-option--active .lang-option__name { color: var(--primary-color); }
+.lang-option__check { color: var(--primary-color); flex-shrink: 0; }
 
 /* Click-outside backdrop */
 .lang-backdrop {
@@ -380,54 +442,37 @@ const handleLogout = () => {
   z-index: 999;
 }
 
-/* Dropdown enter/leave animation */
-.lang-drop-enter-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-.lang-drop-leave-active {
-  transition: opacity 0.1s ease, transform 0.1s ease;
-}
-.lang-drop-enter-from {
-  opacity: 0;
-  transform: translateY(-6px) scale(0.97);
-}
-.lang-drop-leave-to {
-  opacity: 0;
-  transform: translateY(-4px) scale(0.97);
-}
+/* Dropdown animation */
+.lang-drop-enter-active { transition: opacity 0.12s ease, transform 0.12s ease; }
+.lang-drop-leave-active { transition: opacity 0.08s ease, transform 0.08s ease; }
+.lang-drop-enter-from { opacity: 0; transform: translateY(-5px) scale(0.97); }
+.lang-drop-leave-to  { opacity: 0; transform: translateY(-3px) scale(0.97); }
 
-/* Dark mode: lang trigger */
-html.dark .lang-trigger {
-  background-color: var(--card-bg);
-}
+/* Dark mode lang */
+html.dark .lang-trigger { background-color: var(--card-bg); }
 html.dark .lang-trigger:hover,
-html.dark .lang-dropdown--open .lang-trigger {
-  background-color: var(--primary-light);
-}
-html.dark .lang-panel {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
-}
+html.dark .lang-dropdown--open .lang-trigger { background-color: var(--primary-light); }
+html.dark .lang-panel { box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
 
 /* ── Dark Mode Toggle ── */
 .ctrl-icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1.5px solid var(--border-color);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
   background-color: var(--bg-color);
   color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   flex-shrink: 0;
 }
 .ctrl-icon-btn:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
   background-color: var(--primary-light);
-  transform: rotate(15deg) scale(1.05);
 }
 .theme-toggle--dark {
   background-color: #1e3a5f;
@@ -438,58 +483,53 @@ html.dark .lang-panel {
   background-color: #1d4ed8;
   border-color: #60a5fa;
   color: #ffffff;
-  transform: rotate(-15deg) scale(1.05);
 }
-.theme-icon {
-  transition: all 0.2s ease;
-}
+.theme-icon { transition: all 0.18s ease; }
 
 /* ── Profile Chip ── */
 .profile-chip {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.3rem 0.65rem 0.3rem 0.3rem;
-  border-radius: 12px;
-  border: 1.5px solid var(--border-color);
+  gap: 0.5rem;
+  padding: 0.25rem 0.6rem 0.25rem 0.25rem;
+  border-radius: 9px;
+  border: 1px solid var(--border-color);
   background-color: var(--bg-color);
   text-decoration: none;
   color: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
-  max-width: 200px;
+  transition: all 0.18s ease;
+  max-width: 190px;
 }
 .profile-chip:hover {
   border-color: var(--primary-color);
   background-color: var(--primary-light);
-  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.12);
-  transform: translateY(-1px);
 }
 .profile-chip__avatar {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--primary-color);
+  border: 1.5px solid var(--primary-color);
   flex-shrink: 0;
 }
 .profile-chip__info {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 .profile-chip__name {
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 110px;
+  max-width: 105px;
 }
 .profile-chip__role {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -498,45 +538,36 @@ html.dark .lang-panel {
 .profile-chip__chevron {
   color: var(--text-muted);
   flex-shrink: 0;
-  transition: transform 0.2s ease;
-}
-.profile-chip:hover .profile-chip__chevron {
-  transform: translateY(2px);
-  color: var(--primary-color);
 }
 
 /* ── Logout Button ── */
 .logout-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.38rem 0.75rem;
-  border-radius: 10px;
-  border: 1.5px solid #fecaca;
+  gap: 0.38rem;
+  padding: 0.32rem 0.7rem;
+  border-radius: 7px;
+  border: 1px solid #fecaca;
   background-color: #fff5f5;
   color: #dc2626;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   font-family: var(--font-family);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
+  height: 32px;
 }
 .logout-btn:hover {
   background-color: #dc2626;
   border-color: #dc2626;
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
-.logout-btn svg {
-  transition: transform 0.18s ease;
-}
-.logout-btn:hover svg {
-  transform: translateX(2px);
-}
+.logout-btn svg { transition: transform 0.15s ease; }
+.logout-btn:hover svg { transform: translateX(2px); }
 
-/* Dark mode: logout adapts */
+/* Dark mode: logout */
 html.dark .logout-btn {
   background-color: rgba(220, 38, 38, 0.1);
   border-color: rgba(220, 38, 38, 0.35);
@@ -548,14 +579,7 @@ html.dark .logout-btn:hover {
   color: #ffffff;
 }
 
-/* Dark mode: profile chip adapts */
-html.dark .profile-chip {
-  background-color: var(--card-bg);
-}
-html.dark .ctrl-icon-btn {
-  background-color: var(--card-bg);
-}
-html.dark .ctrl-group.lang-switcher {
-  background-color: var(--card-bg);
-}
+/* Dark mode: chips */
+html.dark .profile-chip { background-color: var(--card-bg); }
+html.dark .ctrl-icon-btn { background-color: var(--card-bg); }
 </style>
